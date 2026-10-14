@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+
+:root {
+  font-family: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+}
+
+/* iOSでフォーカス時に画面がズームしないよう16px以上にする */
+input,
+textarea {
+  font-size: 16px;
+}
+
+button {
+  cursor: pointer;
+}
