@@ -16,6 +16,20 @@ export const en: Messages = {
   interval,
   daysFromNow: (days) => (days <= 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${interval(days)}`),
 
+  common: {
+    loadFailed: 'Couldn’t load your data. Check your connection.',
+    retry: 'Try again',
+    saveFailed: 'Couldn’t save. Check your connection and try again.',
+  },
+
+  login: {
+    email: 'Email',
+    password: 'Password',
+    submit: 'Log in',
+    wrongPassword: 'Wrong email or password',
+    failed: 'Couldn’t log in. Check your connection.',
+  },
+
   tabs: { review: 'Review', memos: 'Memos', newMemo: 'New memo', settings: 'Settings' },
   memoType: { note: 'Note', qa: 'Q&A' },
   grades: { again: 'Forgot', hard: 'Hard', good: 'Good', easy: 'Easy' },
@@ -96,15 +110,17 @@ export const en: Messages = {
     language: 'Language',
     installTitle: '📱 Add to Home Screen',
     installBody:
-      'In Safari, tap Share (□↑) → “Add to Home Screen” to use this like an app. It works offline, shows your due count on the icon, and keeps your data safer.',
+      'In Safari, tap Share (□↑) → “Add to Home Screen” to use this like an app. Your due count shows on the icon.',
+    accountTitle: 'Account',
+    loggedInAs: (email) => `Logged in as ${email}`,
+    logout: 'Log out',
     backupTitle: 'Backup',
-    backupBody: 'Your memos are stored only on this device. Back them up from time to time in case you switch phones.',
+    backupBody: 'Your memos are stored in the cloud, so you can use them from any device. Save a backup from time to time, just in case.',
     saveBackup: 'Save backup',
     restore: 'Restore from backup',
     imported: (n) => `Imported ${plural(n, 'memo')}`,
     invalidBackup: 'This is not a Super Memo backup file',
     importFailed: 'Import failed',
-    persist: 'Keep data safe (request persistent storage)',
     howTitle: 'How reviews work',
     howBody:
       'Your first review comes the day after you write a memo. After that, each review is scheduled based on how well you remembered — right before you’d start forgetting (about 90% recall). The better you know it, the longer the gap: 3 days → 1 week → 1 month…; if you forgot, it shrinks again.',

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import type { Grade } from 'ts-fsrs'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
-import { dueMemosQuery, recordReview } from '../lib/memos'
+import { listDueMemos, recordReview } from '../lib/memos'
 import { GRADES, preview } from '../lib/scheduler'
 
 export function ReviewPage() {
@@ -14,9 +14,10 @@ export function ReviewPage() {
   const [index, setIndex] = useState(0)
   const [revealed, setRevealed] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [loadError, setLoadError] = useState<unknown>()
 
   useEffect(() => {
-    dueMemosQuery().sortBy('due').then(setQueue)
+    listDueMemos().then(setQueue, setLoadError)
   }, [])
 
   const memo = queue?.[index]
@@ -25,12 +26,21 @@ export function ReviewPage() {
   async function rate(grade: Grade) {
     if (!memo || !outcomes || saving) return
     setSaving(true)
-    await recordReview(memo, grade, outcomes[grade])
-    setSaving(false)
+    try {
+      await recordReview(memo, grade, outcomes[grade])
+    } catch (e) {
+      // 同じカードのまま、もう一度評価できる
+      console.error(e)
+      alert(t.common.saveFailed)
+      return
+    } finally {
+      setSaving(false)
+    }
     setRevealed(false)
     setIndex((i) => i + 1)
   }
 
+  if (loadError) throw loadError
   if (!queue) return null
 
   if (!memo) {
