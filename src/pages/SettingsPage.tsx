@@ -104,6 +104,10 @@ export function SettingsPage() {
         <p className="leading-relaxed text-slate-600 dark:text-slate-300">{t.settings.howBody}</p>
         <p className="text-xs text-slate-500">{t.settings.algorithm}</p>
       </section>
+
+      <p className="text-center text-xs text-slate-400">
+        {t.appName} v{__APP_VERSION__}
+      </p>
     </div>
   )
 }
