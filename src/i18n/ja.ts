@@ -14,6 +14,20 @@ export const ja = {
   /** 何日後か（例: 今日 / 明日 / 3日後） */
   daysFromNow: (days: number) => (days <= 0 ? '今日' : days === 1 ? '明日' : `${interval(days)}後`),
 
+  common: {
+    loadFailed: '読み込みに失敗しました。通信状況を確認してください。',
+    retry: '再読み込み',
+    saveFailed: '保存できませんでした。通信状況を確認して、もう一度お試しください。',
+  },
+
+  login: {
+    email: 'メールアドレス',
+    password: 'パスワード',
+    submit: 'ログイン',
+    wrongPassword: 'メールアドレスかパスワードが違います',
+    failed: 'ログインできませんでした。通信状況を確認してください。',
+  },
+
   tabs: { review: '復習', memos: 'メモ', newMemo: '新しいメモ', settings: '設定' },
   memoType: { note: 'メモ', qa: '問題' },
   grades: { again: '忘れてた', hard: 'うろ覚え', good: '覚えてた', easy: '簡単' },
@@ -94,15 +108,17 @@ export const ja = {
     language: '言語',
     installTitle: '📱 ホーム画面に追加しよう',
     installBody:
-      'Safariの共有ボタン（□↑）→「ホーム画面に追加」で、アプリのように使えます。オフラインでも動き、アイコンに復習件数が表示されます。データも消えにくくなります。',
+      'Safariの共有ボタン（□↑）→「ホーム画面に追加」で、アプリのように使えます。アイコンに復習件数が表示されます。',
+    accountTitle: 'アカウント',
+    loggedInAs: (email: string) => `${email} でログイン中`,
+    logout: 'ログアウト',
     backupTitle: 'バックアップ',
-    backupBody: 'メモはこの端末の中だけに保存されています。機種変更に備えて、ときどきバックアップしましょう。',
+    backupBody: 'メモはクラウドに保存されているので、どの端末からでも使えます。念のため、ときどきバックアップしておきましょう。',
     saveBackup: 'バックアップを保存',
     restore: 'バックアップから復元',
     imported: (n: number) => `${n}件のメモを読み込みました`,
     invalidBackup: 'スーパーメモのバックアップファイルではありません',
     importFailed: '読み込みに失敗しました',
-    persist: 'データを消えにくくする（永続ストレージを要求）',
     howTitle: '復習のしくみ',
     howBody:
       'メモを書いた翌日に最初の復習があります。その後は振り返ったときの評価に応じて、記憶が薄れかける直前（思い出せる確率が約90%）のタイミングで次の復習が組まれます。覚えているほど間隔は 3日 → 1週間 → 1ヶ月… と伸び、忘れていたら短く戻ります。',

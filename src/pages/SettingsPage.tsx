@@ -1,27 +1,27 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { LANGUAGES, useI18n } from '../i18n'
+import { supabase } from '../lib/db'
 import { exportBackup, importBackup, InvalidBackupError } from '../lib/memos'
+import { useSession } from '../lib/useSession'
 
 const isStandalone =
   window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
 
 export function SettingsPage() {
   const { t, lang, setLang } = useI18n()
+  const session = useSession()
   const fileInput = useRef<HTMLInputElement>(null)
-  const [persisted, setPersisted] = useState<boolean>()
   const [message, setMessage] = useState('')
 
-  useEffect(() => {
-    navigator.storage?.persisted?.().then(setPersisted)
-  }, [])
-
-  async function requestPersist() {
-    const ok = await navigator.storage?.persist?.()
-    setPersisted(ok)
-  }
-
   async function download() {
-    const blob = await exportBackup()
+    let blob: Blob
+    try {
+      blob = await exportBackup()
+    } catch (e) {
+      console.error(e)
+      setMessage(t.common.loadFailed)
+      return
+    }
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -89,11 +89,14 @@ export function SettingsPage() {
           }}
         />
         {message && <p className="text-indigo-600 dark:text-indigo-400">{message}</p>}
-        {persisted === false && (
-          <button onClick={requestPersist} className="text-xs text-slate-500 underline">
-            {t.settings.persist}
-          </button>
-        )}
+      </section>
+
+      <section className={card}>
+        <h2 className="font-semibold">{t.settings.accountTitle}</h2>
+        {session?.user.email && <p className="text-slate-600 dark:text-slate-300">{t.settings.loggedInAs(session.user.email)}</p>}
+        <button onClick={() => supabase.auth.signOut()} className={button}>
+          {t.settings.logout}
+        </button>
       </section>
 
       <section className={card}>

@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
-import { db } from '../lib/db'
+import { listMemos } from '../lib/memos'
 import { daysUntil } from '../lib/scheduler'
+import { useData } from '../lib/useData'
 import { useToday } from '../lib/useNow'
 
 export function MemoListPage() {
   const { t } = useI18n()
   useToday() // 日付が変わったら「今日」「明日」の表示を更新する
   const [search, setSearch] = useState('')
-  const memos = useLiveQuery(() => db.memos.orderBy('createdAt').reverse().toArray(), [])
+  const memos = useData(listMemos, [])
 
   const keyword = search.trim().toLowerCase()
   const filtered = memos?.filter(

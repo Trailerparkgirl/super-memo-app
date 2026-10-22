@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Rating } from 'ts-fsrs'
 import { useI18n } from '../i18n'
-import { db, type Memo, type MemoType } from '../lib/db'
-import { createMemo, deleteMemo, parseTags, resetMemo, updateMemo } from '../lib/memos'
+import { type Memo, type MemoType } from '../lib/db'
+import { createMemo, deleteMemo, getMemo, listLogs, parseTags, resetMemo, updateMemo } from '../lib/memos'
 import { daysUntil, GRADES } from '../lib/scheduler'
+import { useData } from '../lib/useData'
 
 export function MemoEditPage() {
   const { id } = useParams()
   // 読み込み中は undefined、存在しないメモは null
-  const memo = useLiveQuery(async () => (id ? ((await db.memos.get(id)) ?? null) : null), [id])
+  const memo = useData(async () => (id ? getMemo(id) : null), [id])
   if (id && memo === undefined) return null
   // メモが切り替わったらフォームを作り直して内容を読み込む
   return <MemoForm key={memo?.id ?? 'new'} memo={memo ?? undefined} />
@@ -20,33 +20,47 @@ function MemoForm({ memo }: { memo?: Memo }) {
   const { t } = useI18n()
   const id = memo?.id
   const navigate = useNavigate()
-  const logs = useLiveQuery(() => (id ? db.logs.where('memoId').equals(id).reverse().sortBy('reviewedAt') : []), [id])
+  const logs = useData(async () => (id ? listLogs(id) : []), [id])
 
   const [type, setType] = useState<MemoType>(memo?.type ?? 'note')
   const [title, setTitle] = useState(memo?.title ?? '')
   const [body, setBody] = useState(memo?.body ?? '')
   const [tags, setTags] = useState(memo?.tags.join(' ') ?? '')
+  // 通信中に二度押しして同じメモが2つできないようにする
+  const [busy, setBusy] = useState(false)
 
   const isQa = type === 'qa'
-  const canSave = title.trim() !== '' && (!isQa || body.trim() !== '')
+  const canSave = title.trim() !== '' && (!isQa || body.trim() !== '') && !busy
+
+  /** 書き込みを1つずつ実行する。失敗したら知らせて false を返す。 */
+  async function write(task: () => Promise<unknown>): Promise<boolean> {
+    setBusy(true)
+    try {
+      await task()
+      return true
+    } catch (e) {
+      console.error(e)
+      alert(t.common.saveFailed)
+      return false
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function save() {
     if (!canSave) return
     const input = { type, title: title.trim(), body: body.trim(), tags: parseTags(tags) }
-    if (id) await updateMemo(id, input)
-    else await createMemo(input)
-    navigate('/memos')
+    if (await write(() => (id ? updateMemo(id, input) : createMemo(input)))) navigate('/memos')
   }
 
   async function remove() {
-    if (!id || !confirm(t.edit.confirmDelete)) return
-    await deleteMemo(id)
-    navigate('/memos', { replace: true })
+    if (!id || busy || !confirm(t.edit.confirmDelete)) return
+    if (await write(() => deleteMemo(id))) navigate('/memos', { replace: true })
   }
 
   async function reset() {
-    if (!id || !confirm(t.edit.confirmReset)) return
-    await resetMemo(id)
+    if (!id || busy || !confirm(t.edit.confirmReset)) return
+    await write(() => resetMemo(id))
   }
 
   const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900'

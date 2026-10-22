@@ -1,34 +1,31 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
-import { db } from '../lib/db'
-import { dueMemosQuery } from '../lib/memos'
+import { countDueMemos, countMemos, countReviewsSince, listDueDates } from '../lib/memos'
 import { endOfDay, startOfDay } from '../lib/scheduler'
+import { useData } from '../lib/useData'
 import { useToday } from '../lib/useNow'
 
 export function HomePage() {
   const { t } = useI18n()
   const today = useToday()
 
-  const stats = useLiveQuery(async () => {
+  const stats = useData(async () => {
     const now = new Date()
-    const dueCount = await dueMemosQuery(now).count()
-    const total = await db.memos.count()
-    const reviewedToday = await db.logs.where('reviewedAt').aboveOrEqual(startOfDay(now)).count()
-
     // 明日から7日間の復習予定
     const days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(now)
       d.setDate(d.getDate() + i + 1)
       return d
     })
-    const upcoming = await db.memos
-      .where('due')
-      .between(startOfDay(days[0]).getTime(), endOfDay(days[6]).getTime(), true, true)
-      .toArray()
+    const [dueCount, total, reviewedToday, upcoming] = await Promise.all([
+      countDueMemos(now),
+      countMemos(),
+      countReviewsSince(startOfDay(now)),
+      listDueDates(startOfDay(days[0]), endOfDay(days[6])),
+    ])
     const forecast = days.map((d) => ({
       date: d,
-      count: upcoming.filter((m) => startOfDay(new Date(m.due)).getTime() === startOfDay(d).getTime()).length,
+      count: upcoming.filter((due) => startOfDay(new Date(due)).getTime() === startOfDay(d).getTime()).length,
     }))
 
     return { dueCount, total, reviewedToday, forecast }
