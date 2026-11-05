@@ -160,7 +160,7 @@ export const ja = {
     invalidBackup: 'スーパーメモのバックアップファイルではありません',
     importFailed: '読み込みに失敗しました',
     aiTitle: 'AI 例文（Gemini）',
-    aiBody: 'フラッシュカードの例文は Google Gemini の無料枠で作ります。Google AI Studio で無料の API キーを作って貼り付けてください。キーはこの端末にだけ保存されます。',
+    aiBody: 'フラッシュカードの例文は Google Gemini の無料枠で作ります。Google AI Studio で無料の API キーを作って貼り付けてください。キーはアカウントに保存されるので、ログインしたどの端末でも使えます。',
     aiGetKey: 'API キーを作る ↗',
     aiKeyPlaceholder: 'API キーを貼り付け',
     aiSave: '保存',

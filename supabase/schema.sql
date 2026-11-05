@@ -56,3 +56,18 @@ create policy "own review logs" on public.review_logs
   for all to authenticated
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
+
+-- アカウントごとの設定（Gemini の API キーなど）。どの端末でも同じ設定を使う。
+create table if not exists public.user_settings (
+  user_id uuid primary key default auth.uid() references auth.users on delete cascade,
+  gemini_api_key text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.user_settings enable row level security;
+
+drop policy if exists "own settings" on public.user_settings;
+create policy "own settings" on public.user_settings
+  for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
