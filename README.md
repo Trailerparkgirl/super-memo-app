@@ -25,6 +25,18 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxxxx
 
 Vercel では同じ2つを Project Settings → Environment Variables に設定する。
 
+## デプロイ（Vercel）
+
+デプロイするのは2つのブランチだけ（`vercel.json` の `git.deploymentEnabled`）。
+
+| ブランチ | 環境 | URL |
+|---|---|---|
+| `main` | Prod（本番） | 本番の URL |
+| `dev` | Dev（確認用） | `dev` ブランチの Preview URL（毎回同じ） |
+
+それ以外のブランチ（`fix/...` など）を push してもデプロイされない。
+作業ブランチ → `dev` にマージして確認 → `main` にマージして本番、の順で進める。
+
 ## 開発
 
 ```sh
