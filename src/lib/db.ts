@@ -9,14 +9,15 @@ if (!url || !key) {
 
 export const supabase = createClient(url, key)
 
-export type MemoType = 'note' | 'qa'
+/** note: 自由メモ / qa: 問題と答え / word: 単語（フラッシュカード用） */
+export type MemoType = 'note' | 'qa' | 'word'
 
 export interface Memo {
   id: string
   type: MemoType
-  /** 自由メモ: タイトル / 問題形式: 問題 */
+  /** 自由メモ: タイトル / 問題形式: 問題 / 単語: 単語 */
   title: string
-  /** 自由メモ: 本文 / 問題形式: 答え */
+  /** 自由メモ: 本文 / 問題形式: 答え / 単語: 意味 */
   body: string
   tags: string[]
   createdAt: Date

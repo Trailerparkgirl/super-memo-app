@@ -6,6 +6,7 @@ import { countDueMemos } from './lib/memos'
 import { useData } from './lib/useData'
 import { useToday } from './lib/useNow'
 import { useSession } from './lib/useSession'
+import { FlashPage } from './pages/FlashPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { MemoEditPage } from './pages/MemoEditPage'
@@ -43,6 +44,7 @@ function MainApp() {
               <Route path="/memos" element={<MemoListPage />} />
               <Route path="/memos/new" element={<MemoEditPage />} />
               <Route path="/memos/:id" element={<MemoEditPage />} />
+              <Route path="/flash" element={<FlashPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </PageErrorBoundary>

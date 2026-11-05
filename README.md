@@ -2,7 +2,8 @@
 
 忘却曲線に合わせて、勉強したメモを振り返るタイミングを教えてくれるモバイルWebアプリ（PWA）。
 
-- メモは「自由メモ」か「問題と答え」の2形式
+- メモは「自由メモ」「問題と答え」「単語」の3形式
+- 単語はフラッシュカードでランダムに何度でも練習できる。評価は通常の復習と同じく次の復習日に反映される。辞書（Free Dictionary API）と AI 例文（Gemini 無料枠、API キーは設定画面から端末に保存）付き
 - 書いた翌日に最初の復習。以降は振り返り時の評価（忘れてた / うろ覚え / 覚えてた / 簡単）に応じて FSRS アルゴリズムが次の復習日を決める
 - 日本語 / 英語に対応（初回は端末の言語、設定画面で切り替え可）
 - データは Supabase（クラウドの Postgres）に保存し、メールとパスワードでログインして使う。設定画面から JSON でバックアップ / 復元できる
@@ -13,7 +14,7 @@ Vite + React + TypeScript / Tailwind CSS / Supabase / ts-fsrs / vite-plugin-pwa�
 
 ## Supabase の準備
 
-1. Supabase でプロジェクトを作り、SQL Editor で `supabase/schema.sql` を実行する
+1. Supabase でプロジェクトを作り、SQL Editor で `supabase/schema.sql` を実行する（アップデートで中身が変わったときも、もう一度実行する）
 2. Authentication → Users → Add user で自分のユーザーを作り（Auto Confirm User にチェック）、Sign In / Providers で新規登録を無効にする
 3. Project URL と publishable key を `.env.local` に書く
 

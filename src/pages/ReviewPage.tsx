@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Grade } from 'ts-fsrs'
+import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
 import { listDueMemos, recordReview } from '../lib/memos'
@@ -56,7 +57,8 @@ export function ReviewPage() {
     )
   }
 
-  const isQa = memo.type === 'qa'
+  const isNote = memo.type === 'note'
+  const isWord = memo.type === 'word'
 
   return (
     <div className="flex min-h-[calc(100dvh-2rem)] flex-col gap-4">
@@ -86,12 +88,17 @@ export function ReviewPage() {
         <h2 className="text-xl font-bold whitespace-pre-wrap">{memo.title}</h2>
 
         {revealed ? (
-          <div className="border-t border-slate-200 pt-4 whitespace-pre-wrap leading-relaxed dark:border-slate-700">
-            {isQa && <p className="mb-1 text-xs font-semibold text-slate-500">{t.review.answer}</p>}
-            {memo.body || <span className="text-slate-400">{t.review.noBody}</span>}
-          </div>
+          <>
+            <div className="border-t border-slate-200 pt-4 whitespace-pre-wrap leading-relaxed dark:border-slate-700">
+              {!isNote && <p className="mb-1 text-xs font-semibold text-slate-500">{isWord ? t.review.meaning : t.review.answer}</p>}
+              {memo.body || <span className="text-slate-400">{t.review.noBody}</span>}
+            </div>
+            {isWord && <WordTools key={memo.id} word={memo.title.trim()} meaning={memo.body.trim()} />}
+          </>
         ) : (
-          <p className="text-sm text-slate-500 dark:text-slate-400">{isQa ? t.review.recallQa : t.review.recallNote}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {isWord ? t.review.recallWord : isNote ? t.review.recallNote : t.review.recallQa}
+          </p>
         )}
       </article>
 
@@ -115,7 +122,7 @@ export function ReviewPage() {
           </>
         ) : (
           <button onClick={() => setRevealed(true)} className="w-full rounded-xl bg-indigo-600 py-4 font-semibold text-white">
-            {isQa ? t.review.showAnswer : t.review.showContent}
+            {isNote ? t.review.showContent : t.review.showAnswer}
           </button>
         )}
       </div>

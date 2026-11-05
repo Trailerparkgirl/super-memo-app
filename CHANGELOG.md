@@ -9,6 +9,14 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- New memo type "Word" (word + meaning) for vocabulary. The memo list switches between memos and words.
+  Run `supabase/schema.sql` again to allow the new type.
+- Flash cards tab: practice your words in endless random order, word → meaning or meaning → word, optionally by tag.
+  Ratings (Forgot / Hard / Good / Easy) update the review schedule like regular reviews,
+  and words you rated low come up more often.
+- Dictionary definitions for words (Free Dictionary API), plus a button to open Google's definition.
+  Also shown on words in regular reviews.
+- AI example sentences for words with Google Gemini's free tier (API key set in Settings, stored only on the device)
 - Cloud storage with Supabase, so memos can be used from any device
 - Email and password login, and a logout button in Settings
 - Retry screen when data fails to load, and an alert when saving fails
