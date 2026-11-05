@@ -62,6 +62,7 @@ export const en: Messages = {
     recallQa: 'Try to recall the answer first.',
     recallNote: 'Try to recall what this memo was about first.',
     howWell: 'How well did you remember? (time until next review)',
+    overdue: (days) => `${plural(days, 'day')} late, so the next review comes sooner`,
     showAnswer: 'Show answer',
     showContent: 'Show content',
   },

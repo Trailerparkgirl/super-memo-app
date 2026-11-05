@@ -60,6 +60,7 @@ export const ja = {
     recallQa: 'まず答えを思い出してみましょう。',
     recallNote: 'どんな内容だったか、まず思い出してみましょう。',
     howWell: 'どのくらい覚えていましたか？（下の数字は次の復習まで）',
+    overdue: (days: number) => `予定より${days}日遅れたので、次の復習を早めます`,
     showAnswer: '答えを見る',
     showContent: '内容を見る',
   },

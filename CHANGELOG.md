@@ -29,6 +29,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Memos and review history are stored in Supabase instead of the browser (IndexedDB).
   Backups from v0.1.0 can be restored into the new version.
 - Save buttons are disabled while saving, to prevent duplicate memos
+- Reviewing a memo after its due date now brings the next review earlier by the number of days it was late
+  (never sooner than the next day). The review screen shows how many days late it was.
 
 ### Removed
 
