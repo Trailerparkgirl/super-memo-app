@@ -23,12 +23,18 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Each review now also stores the full FSRS log and the card before the review, to support undo later
 - Version number shown at the bottom of Settings
 - `vercel.json` so page refreshes work when hosted on Vercel
+- Edit a word or its meaning right from a flash card, without leaving the practice session
 
 ### Changed
 
+- The Gemini API key is saved to your account instead of only on the device, so it works on every device you log in to.
+  A key already saved on a device is moved to the account automatically.
+  Run `supabase/schema.sql` again to create the new `user_settings` table.
 - Memos and review history are stored in Supabase instead of the browser (IndexedDB).
   Backups from v0.1.0 can be restored into the new version.
 - Save buttons are disabled while saving, to prevent duplicate memos
+- Reviewing a memo after its due date now brings the next review earlier by the number of days it was late
+  (never sooner than the next day). The review screen shows how many days late it was.
 
 ### Removed
 

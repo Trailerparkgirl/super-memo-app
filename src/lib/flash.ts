@@ -1,5 +1,5 @@
 import { Rating, type Grade } from 'ts-fsrs'
-import type { Memo } from './db'
+import { supabase, type Memo } from './db'
 import { endOfDay } from './scheduler'
 
 /** front: 単語を見て意味を思い出す / back: 意味を見て単語を思い出す */
@@ -63,9 +63,45 @@ const exampleKey = (word: string) => `super-memo:example:${word.toLowerCase()}`
 export const getDirection = (): FlashDirection => (load(DIRECTION_KEY) === 'back' ? 'back' : 'front')
 export const setDirection = (direction: FlashDirection) => save(DIRECTION_KEY, direction)
 
-/** Gemini の API キーはこの端末にだけ保存する（データベースには送らない） */
-export const getGeminiKey = () => load(GEMINI_KEY) ?? ''
-export const setGeminiKey = (key: string) => save(GEMINI_KEY, key.trim() || null)
+// ---- Gemini の API キー ----
+// アカウント（user_settings テーブル）に保存して、どの端末でも使えるようにする。
+// 端末にも控えを置き、通信できないときはそれを使う。
+
+const cachedGeminiKey = () => load(GEMINI_KEY) ?? ''
+
+/** アカウントに保存した API キー。読み込めなければ端末の控えを使う。 */
+export async function loadGeminiKey(): Promise<string> {
+  const { data, error } = await supabase.from('user_settings').select('gemini_api_key').maybeSingle()
+  if (error) {
+    console.error(error)
+    return cachedGeminiKey()
+  }
+  if (!data) {
+    // 端末にだけ保存していた頃のキーがあれば、アカウントに移す
+    const local = cachedGeminiKey()
+    if (local) await saveGeminiKey(local).catch((e: unknown) => console.error(e))
+    return local
+  }
+  const key = (data as { gemini_api_key: string | null }).gemini_api_key ?? ''
+  save(GEMINI_KEY, key || null)
+  return key
+}
+
+/** 空にするとキーを削除する。保存できなければ例外を投げる。 */
+export async function saveGeminiKey(key: string) {
+  const value = key.trim()
+  const { data } = await supabase.auth.getSession()
+  const userId = data.session?.user.id
+  if (!userId) throw new Error('Not logged in')
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert({ user_id: userId, gemini_api_key: value || null, updated_at: new Date().toISOString() })
+  if (error) throw error
+  save(GEMINI_KEY, value || null)
+}
+
+/** ログアウトしたら端末の控えを消す（次に別のアカウントでログインしたときに混ざらないように） */
+export const clearCachedGeminiKey = () => save(GEMINI_KEY, null)
 
 // ---- 辞書（Free Dictionary API） ----
 
@@ -129,7 +165,7 @@ export const cachedExample = (word: string) => load(exampleKey(word))
 
 /** 単語の例文を1つ作る。意味も渡して、覚えたい意味での使い方にする。 */
 export async function generateExample(word: string, meaning: string): Promise<string> {
-  const key = getGeminiKey()
+  const key = await loadGeminiKey()
   if (!key) throw new AiError('noKey')
   const prompt =
     `Write one natural English example sentence that uses "${word}" in this meaning: "${meaning}". ` +

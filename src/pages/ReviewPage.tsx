@@ -5,7 +5,7 @@ import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
 import { listDueMemos, recordReview } from '../lib/memos'
-import { GRADES, preview } from '../lib/scheduler'
+import { GRADES, overdueDays, preview } from '../lib/scheduler'
 
 export function ReviewPage() {
   const { t } = useI18n()
@@ -105,6 +105,9 @@ export function ReviewPage() {
       <div className="pb-[env(safe-area-inset-bottom)]">
         {outcomes ? (
           <>
+            {overdueDays(memo.card) > 0 && (
+              <p className="mb-1 text-center text-xs text-amber-600 dark:text-amber-400">{t.review.overdue(overdueDays(memo.card))}</p>
+            )}
             <p className="mb-2 text-center text-xs text-slate-500">{t.review.howWell}</p>
             <div className="grid grid-cols-4 gap-2">
               {GRADES.map(({ grade, key, color }) => (

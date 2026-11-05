@@ -33,15 +33,35 @@ export function newCard(now = new Date()): Card {
   return card
 }
 
+/** 復習予定日を何日過ぎているか（過ぎていなければ0） */
+export function overdueDays(card: Card, now = new Date()): number {
+  return Math.max(0, -daysUntil(card.due.getTime(), now))
+}
+
+/**
+ * 予定日に復習しなかった場合は次の復習を早める（最短でも翌日）。
+ * FSRS は遅れて思い出せると間隔を長くするので、まず予定日に復習した場合の間隔に抑え、
+ * そこから遅れた日数を引く。例: 予定日なら「Good」で13日後、3日遅れた → 10日後
+ */
+function shortenForDelay(item: RecordLogItem, onTimeDays: number, overdue: number): RecordLogItem {
+  const days = item.card.scheduled_days
+  const shortened = Math.max(1, Math.min(days, onTimeDays) - overdue)
+  if (shortened >= days) return item
+  const due = new Date(item.card.due.getTime() - (days - shortened) * DAY)
+  return { ...item, card: { ...item.card, scheduled_days: shortened, due } }
+}
+
 /** 4つの評価それぞれを選んだ場合の結果 */
 export function preview(card: Card, now = new Date()): Record<Grade, RecordLogItem> {
   const result = scheduler.repeat(card, now)
-  return {
-    [Rating.Again]: result[Rating.Again],
-    [Rating.Hard]: result[Rating.Hard],
-    [Rating.Good]: result[Rating.Good],
-    [Rating.Easy]: result[Rating.Easy],
-  } as Record<Grade, RecordLogItem>
+  const grades = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy] as const
+  const overdue = overdueDays(card, now)
+  if (overdue === 0) return Object.fromEntries(grades.map((g) => [g, result[g]])) as Record<Grade, RecordLogItem>
+
+  const onTime = scheduler.repeat(card, card.due)
+  return Object.fromEntries(
+    grades.map((g) => [g, shortenForDelay(result[g], onTime[g].card.scheduled_days, overdue)]),
+  ) as Record<Grade, RecordLogItem>
 }
 
 export function startOfDay(date = new Date()): Date {
