@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Rating } from 'ts-fsrs'
 import { useI18n } from '../i18n'
 import { type Memo, type MemoType } from '../lib/db'
@@ -21,16 +21,25 @@ function MemoForm({ memo }: { memo?: Memo }) {
   const id = memo?.id
   const navigate = useNavigate()
   const logs = useData(async () => (id ? listLogs(id) : []), [id])
+  // フラッシュカード画面から来たときは ?type=word で「単語」を選んだ状態にする
+  const [params] = useSearchParams()
 
-  const [type, setType] = useState<MemoType>(memo?.type ?? 'note')
+  const [type, setType] = useState<MemoType>(memo?.type ?? (params.get('type') === 'word' ? 'word' : 'note'))
   const [title, setTitle] = useState(memo?.title ?? '')
   const [body, setBody] = useState(memo?.body ?? '')
   const [tags, setTags] = useState(memo?.tags.join(' ') ?? '')
   // 通信中に二度押しして同じメモが2つできないようにする
   const [busy, setBusy] = useState(false)
 
-  const isQa = type === 'qa'
-  const canSave = title.trim() !== '' && (!isQa || body.trim() !== '') && !busy
+  const isNote = type === 'note'
+  const canSave = title.trim() !== '' && (isNote || body.trim() !== '') && !busy
+  const listPath = type === 'word' ? '/memos?type=word' : '/memos'
+
+  const fields = {
+    note: { title: t.edit.title, body: t.edit.content, titleRows: 1, bodyRows: 10, titlePlaceholder: t.edit.titlePlaceholder, bodyPlaceholder: t.edit.contentPlaceholder },
+    qa: { title: t.edit.question, body: t.edit.answer, titleRows: 3, bodyRows: 4, titlePlaceholder: t.edit.questionPlaceholder, bodyPlaceholder: t.edit.answerPlaceholder },
+    word: { title: t.edit.word, body: t.edit.meaning, titleRows: 1, bodyRows: 3, titlePlaceholder: t.edit.wordPlaceholder, bodyPlaceholder: t.edit.meaningPlaceholder },
+  }[type]
 
   /** 書き込みを1つずつ実行する。失敗したら知らせて false を返す。 */
   async function write(task: () => Promise<unknown>): Promise<boolean> {
@@ -50,12 +59,12 @@ function MemoForm({ memo }: { memo?: Memo }) {
   async function save() {
     if (!canSave) return
     const input = { type, title: title.trim(), body: body.trim(), tags: parseTags(tags) }
-    if (await write(() => (id ? updateMemo(id, input) : createMemo(input)))) navigate('/memos')
+    if (await write(() => (id ? updateMemo(id, input) : createMemo(input)))) navigate(listPath)
   }
 
   async function remove() {
     if (!id || busy || !confirm(t.edit.confirmDelete)) return
-    if (await write(() => deleteMemo(id))) navigate('/memos', { replace: true })
+    if (await write(() => deleteMemo(id))) navigate(listPath, { replace: true })
   }
 
   async function reset() {
@@ -77,11 +86,12 @@ function MemoForm({ memo }: { memo?: Memo }) {
         </button>
       </header>
 
-      <div className="grid grid-cols-2 rounded-xl bg-slate-200 p-1 text-sm dark:bg-slate-800">
+      <div className="grid grid-cols-3 rounded-xl bg-slate-200 p-1 text-sm dark:bg-slate-800">
         {(
           [
             ['note', t.edit.typeNote],
             ['qa', t.edit.typeQa],
+            ['word', t.edit.typeWord],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -95,24 +105,24 @@ function MemoForm({ memo }: { memo?: Memo }) {
       </div>
 
       <label className="block space-y-1">
-        <span className="text-sm text-slate-600 dark:text-slate-300">{isQa ? t.edit.question : t.edit.title}</span>
+        <span className="text-sm text-slate-600 dark:text-slate-300">{fields.title}</span>
         <textarea
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          rows={isQa ? 3 : 1}
-          placeholder={isQa ? t.edit.questionPlaceholder : t.edit.titlePlaceholder}
+          rows={fields.titleRows}
+          placeholder={fields.titlePlaceholder}
           className={inputClass}
           autoFocus={!id}
         />
       </label>
 
       <label className="block space-y-1">
-        <span className="text-sm text-slate-600 dark:text-slate-300">{isQa ? t.edit.answer : t.edit.content}</span>
+        <span className="text-sm text-slate-600 dark:text-slate-300">{fields.body}</span>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          rows={isQa ? 4 : 10}
-          placeholder={isQa ? t.edit.answerPlaceholder : t.edit.contentPlaceholder}
+          rows={fields.bodyRows}
+          placeholder={fields.bodyPlaceholder}
           className={inputClass}
         />
       </label>

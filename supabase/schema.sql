@@ -4,10 +4,10 @@
 create table if not exists public.memos (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users on delete cascade,
-  type text not null check (type in ('note', 'qa')),
-  -- 自由メモ: タイトル / 問題形式: 問題
+  type text not null check (type in ('note', 'qa', 'word')),
+  -- 自由メモ: タイトル / 問題形式: 問題 / 単語: 単語
   title text not null,
-  -- 自由メモ: 本文 / 問題形式: 答え
+  -- 自由メモ: 本文 / 問題形式: 答え / 単語: 意味
   body text not null default '',
   tags text[] not null default '{}',
   created_at timestamptz not null default now(),
@@ -17,6 +17,10 @@ create table if not exists public.memos (
   -- card.due と同じ値（検索・並び替え用）
   due timestamptz not null
 );
+
+-- 前のバージョンで作ったテーブルでも「単語」を保存できるようにする
+alter table public.memos drop constraint if exists memos_type_check;
+alter table public.memos add constraint memos_type_check check (type in ('note', 'qa', 'word'));
 
 create index if not exists memos_user_due_idx on public.memos (user_id, due);
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import { listMemos } from '../lib/memos'
 import { daysUntil } from '../lib/scheduler'
@@ -10,7 +10,11 @@ export function MemoListPage() {
   const { t } = useI18n()
   useToday() // 日付が変わったら「今日」「明日」の表示を更新する
   const [search, setSearch] = useState('')
-  const memos = useData(listMemos, [])
+  const allMemos = useData(listMemos, [])
+  // メモと単語は分けて表示する（?type=word で単語）
+  const [params, setParams] = useSearchParams()
+  const showWords = params.get('type') === 'word'
+  const memos = allMemos?.filter((m) => (m.type === 'word') === showWords)
 
   const keyword = search.trim().toLowerCase()
   const filtered = memos?.filter(
@@ -20,6 +24,22 @@ export function MemoListPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t.list.title}</h1>
+      <div className="grid grid-cols-2 rounded-xl bg-slate-200 p-1 text-sm dark:bg-slate-800">
+        {(
+          [
+            [false, t.list.memos],
+            [true, t.list.words],
+          ] as const
+        ).map(([words, label]) => (
+          <button
+            key={label}
+            onClick={() => setParams(words ? { type: 'word' } : {}, { replace: true })}
+            className={`rounded-lg py-2 ${showWords === words ? 'bg-white font-semibold shadow-sm dark:bg-slate-950' : 'text-slate-500'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <input
         type="search"
         value={search}
@@ -29,7 +49,7 @@ export function MemoListPage() {
       />
 
       {filtered?.length === 0 && (
-        <p className="py-10 text-center text-sm text-slate-500">{memos?.length ? t.list.notFound : t.list.empty}</p>
+        <p className="py-10 text-center text-sm text-slate-500">{memos?.length ? t.list.notFound : showWords ? t.list.emptyWords : t.list.empty}</p>
       )}
 
       <ul className="space-y-2">
