@@ -23,6 +23,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Each review now also stores the full FSRS log and the card before the review, to support undo later
 - Version number shown at the bottom of Settings
 - `vercel.json` so page refreshes work when hosted on Vercel
+- Edit a word or its meaning right from a flash card, without leaving the practice session
 
 ### Changed
 
