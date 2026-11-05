@@ -163,7 +163,7 @@ export const en: Messages = {
     importFailed: 'Import failed',
     aiTitle: 'AI examples (Gemini)',
     aiBody:
-      'Flash card example sentences are written by Google Gemini’s free tier. Create a free API key in Google AI Studio and paste it here. The key is saved only on this device.',
+      'Flash card example sentences are written by Google Gemini’s free tier. Create a free API key in Google AI Studio and paste it here. The key is saved to your account, so it works on every device you log in to.',
     aiGetKey: 'Create an API key ↗',
     aiKeyPlaceholder: 'Paste API key',
     aiSave: 'Save',
