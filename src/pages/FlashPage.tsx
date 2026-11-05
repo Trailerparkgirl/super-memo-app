@@ -5,7 +5,7 @@ import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
 import { flashCards, getDirection, pickNext, setDirection as saveDirection, type FlashDirection } from '../lib/flash'
-import { listMemos, recordReview } from '../lib/memos'
+import { listMemos, recordReview, updateMemo } from '../lib/memos'
 import { GRADES, preview } from '../lib/scheduler'
 import { useData } from '../lib/useData'
 
@@ -106,8 +106,32 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
   const [revealed, setRevealed] = useState(false)
   const [saving, setSaving] = useState(false)
   const [count, setCount] = useState(0)
+  // 練習中に単語や意味の間違いに気づいたら、その場で直せる
+  const [draft, setDraft] = useState<{ title: string; body: string } | null>(null)
 
   const outcomes = useMemo(() => (revealed ? preview(memo.card) : null), [memo, revealed])
+
+  async function saveEdit() {
+    if (!draft || saving) return
+    const title = draft.title.trim()
+    const body = draft.body.trim()
+    if (!title) return
+    setSaving(true)
+    try {
+      await updateMemo(memo.id, { type: memo.type, title, body, tags: memo.tags })
+    } catch (e) {
+      // 入力した内容のまま、もう一度保存できる
+      console.error(e)
+      alert(t.common.saveFailed)
+      return
+    } finally {
+      setSaving(false)
+    }
+    const updated = { ...memo, title, body }
+    setCards((list) => list.map((m) => (m.id === memo.id ? updated : m)))
+    setMemo(updated)
+    setDraft(null)
+  }
 
   async function rate(grade: Grade) {
     if (!outcomes || saving) return
@@ -144,21 +168,64 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
         <span className="text-sm tabular-nums text-slate-500">{t.flash.practiced(count)}</span>
       </header>
 
-      <article className="space-y-4 rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">
-        <p className="min-h-24 text-center text-2xl font-bold whitespace-pre-wrap">{prompt}</p>
-        {revealed ? (
-          <>
-            <p className="border-t border-slate-200 pt-4 text-center text-lg whitespace-pre-wrap dark:border-slate-700">{answer}</p>
-            <WordTools key={`${memo.id}-${count}`} word={memo.title.trim()} meaning={memo.body.trim()} />
-          </>
-        ) : (
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-            {direction === 'front' ? t.flash.recallMeaning : t.flash.recallWord}
-          </p>
-        )}
-      </article>
+      {draft ? (
+        <article className="space-y-3 rounded-2xl bg-white p-5 text-sm shadow-sm dark:bg-slate-900">
+          <label className="block space-y-1">
+            <span className="font-semibold">{t.edit.word}</span>
+            <input
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              autoFocus
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base dark:border-slate-700 dark:bg-slate-950"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="font-semibold">{t.edit.meaning}</span>
+            <textarea
+              value={draft.body}
+              onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+              rows={3}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base dark:border-slate-700 dark:bg-slate-950"
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button onClick={() => setDraft(null)} disabled={saving} className="rounded-xl bg-slate-100 py-3 font-semibold dark:bg-slate-800">
+              {t.flash.cancelEdit}
+            </button>
+            <button
+              onClick={saveEdit}
+              disabled={saving || !draft.title.trim()}
+              className="rounded-xl bg-indigo-600 py-3 font-semibold text-white disabled:opacity-40"
+            >
+              {t.flash.saveEdit}
+            </button>
+          </div>
+        </article>
+      ) : (
+        <article className="space-y-4 rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">
+          <div className="flex justify-end">
+            <button
+              onClick={() => setDraft({ title: memo.title, body: memo.body })}
+              className="text-sm text-indigo-600 dark:text-indigo-300"
+            >
+              {t.flash.edit}
+            </button>
+          </div>
+          <p className="min-h-24 text-center text-2xl font-bold whitespace-pre-wrap">{prompt}</p>
+          {revealed ? (
+            <>
+              <p className="border-t border-slate-200 pt-4 text-center text-lg whitespace-pre-wrap dark:border-slate-700">{answer}</p>
+              <WordTools key={`${memo.id}-${count}-${memo.title}`} word={memo.title.trim()} meaning={memo.body.trim()} />
+            </>
+          ) : (
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+              {direction === 'front' ? t.flash.recallMeaning : t.flash.recallWord}
+            </p>
+          )}
+        </article>
+      )}
 
-      {outcomes ? (
+      {draft ? null : outcomes ? (
         <>
           <p className="text-center text-xs text-slate-500">{t.review.howWell}</p>
           <div className="grid grid-cols-4 gap-2">
