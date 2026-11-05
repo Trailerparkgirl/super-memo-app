@@ -1,5 +1,5 @@
 import { Rating, type Grade } from 'ts-fsrs'
-import { supabase, type Memo } from './db'
+import type { Memo } from './db'
 import { endOfDay } from './scheduler'
 
 /** front: 単語を見て意味を思い出す / back: 意味を見て単語を思い出す */
@@ -57,51 +57,12 @@ function save(key: string, value: string | null) {
 }
 
 const DIRECTION_KEY = 'super-memo:flash-direction'
-const GEMINI_KEY = 'super-memo:gemini-key'
-const exampleKey = (word: string) => `super-memo:example:${word.toLowerCase()}`
+
+// 以前この端末に保存していた Gemini の API キーは、もう使わないので消しておく
+save('super-memo:gemini-key', null)
 
 export const getDirection = (): FlashDirection => (load(DIRECTION_KEY) === 'back' ? 'back' : 'front')
 export const setDirection = (direction: FlashDirection) => save(DIRECTION_KEY, direction)
-
-// ---- Gemini の API キー ----
-// アカウント（user_settings テーブル）に保存して、どの端末でも使えるようにする。
-// 端末にも控えを置き、通信できないときはそれを使う。
-
-const cachedGeminiKey = () => load(GEMINI_KEY) ?? ''
-
-/** アカウントに保存した API キー。読み込めなければ端末の控えを使う。 */
-export async function loadGeminiKey(): Promise<string> {
-  const { data, error } = await supabase.from('user_settings').select('gemini_api_key').maybeSingle()
-  if (error) {
-    console.error(error)
-    return cachedGeminiKey()
-  }
-  if (!data) {
-    // 端末にだけ保存していた頃のキーがあれば、アカウントに移す
-    const local = cachedGeminiKey()
-    if (local) await saveGeminiKey(local).catch((e: unknown) => console.error(e))
-    return local
-  }
-  const key = (data as { gemini_api_key: string | null }).gemini_api_key ?? ''
-  save(GEMINI_KEY, key || null)
-  return key
-}
-
-/** 空にするとキーを削除する。保存できなければ例外を投げる。 */
-export async function saveGeminiKey(key: string) {
-  const value = key.trim()
-  const { data } = await supabase.auth.getSession()
-  const userId = data.session?.user.id
-  if (!userId) throw new Error('Not logged in')
-  const { error } = await supabase
-    .from('user_settings')
-    .upsert({ user_id: userId, gemini_api_key: value || null, updated_at: new Date().toISOString() })
-  if (error) throw error
-  save(GEMINI_KEY, value || null)
-}
-
-/** ログアウトしたら端末の控えを消す（次に別のアカウントでログインしたときに混ざらないように） */
-export const clearCachedGeminiKey = () => save(GEMINI_KEY, null)
 
 // ---- 辞書（Free Dictionary API） ----
 
@@ -145,49 +106,38 @@ export async function lookUp(word: string): Promise<DictionaryEntry | null> {
 
 export const googleDefineUrl = (word: string) => `https://www.google.com/search?q=${encodeURIComponent(`define ${word}`)}`
 
-// ---- 例文（Gemini の無料枠） ----
+// ---- 例文（Tatoeba：人が書いた例文の公開データベース。API キー不要・無料） ----
 
-export type AiErrorReason = 'noKey' | 'badKey' | 'quota' | 'failed'
-
-export class AiError extends Error {
-  reason: AiErrorReason
-  constructor(reason: AiErrorReason) {
-    super(reason)
-    this.reason = reason
-  }
+export interface Example {
+  id: number
+  text: string
+  /** 投稿した人とライセンス（表示が必要） */
+  owner: string | null
+  license: string | null
 }
 
-// 常に最新の Flash モデルを指す別名。無料枠で使える。
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent'
-
-/** 前に作った例文があればそれを返す */
-export const cachedExample = (word: string) => load(exampleKey(word))
-
-/** 単語の例文を1つ作る。意味も渡して、覚えたい意味での使い方にする。 */
-export async function generateExample(word: string, meaning: string): Promise<string> {
-  const key = await loadGeminiKey()
-  if (!key) throw new AiError('noKey')
-  const prompt =
-    `Write one natural English example sentence that uses "${word}" in this meaning: "${meaning}". ` +
-    'Make it different from a dictionary example. Reply with the sentence only.'
-
-  let res: Response
-  try {
-    res = await fetch(GEMINI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    })
-  } catch {
-    throw new AiError('failed')
-  }
-  if (res.status === 429) throw new AiError('quota')
-  if (res.status === 400 || res.status === 401 || res.status === 403) throw new AiError('badKey')
-  if (!res.ok) throw new AiError('failed')
-
-  const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
-  const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('').trim()
-  if (!text) throw new AiError('failed')
-  save(exampleKey(word), text)
-  return text
+interface TatoebaSentence {
+  id: number
+  text: string
+  owner: string | null
+  license: string | null
+  is_unapproved: boolean
 }
+
+// 長すぎる文はカードで読みにくいので出さない
+const MAX_EXAMPLE_LENGTH = 160
+
+/** 単語を使った英語の例文をランダムにいくつか探す。見つからなければ空の配列。 */
+export async function findExamples(word: string): Promise<Example[]> {
+  // 熟語（look up など）はその並びのまま探す。1語なら活用形（runs, running）も含めて探す
+  const q = /\s/.test(word) ? `"${word}"` : word
+  const params = new URLSearchParams({ lang: 'eng', q, sort: 'random', limit: '30', is_unapproved: 'no' })
+  const res = await fetch(`https://api.tatoeba.org/unstable/sentences?${params}`)
+  if (!res.ok) throw new Error(`Tatoeba error ${res.status}`)
+  const { data } = (await res.json()) as { data: TatoebaSentence[] }
+  return data
+    .filter((s) => !s.is_unapproved && s.text.length <= MAX_EXAMPLE_LENGTH)
+    .map(({ id, text, owner, license }) => ({ id, text, owner, license }))
+}
+
+export const tatoebaUrl = (id: number) => `https://tatoeba.org/sentences/show/${id}`

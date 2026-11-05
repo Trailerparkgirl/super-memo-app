@@ -215,7 +215,7 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
           {revealed ? (
             <>
               <p className="border-t border-slate-200 pt-4 text-center text-lg whitespace-pre-wrap dark:border-slate-700">{answer}</p>
-              <WordTools key={`${memo.id}-${count}-${memo.title}`} word={memo.title.trim()} meaning={memo.body.trim()} />
+              <WordTools key={`${memo.id}-${count}-${memo.title}`} word={memo.title.trim()} />
             </>
           ) : (
             <p className="text-center text-sm text-slate-500 dark:text-slate-400">
