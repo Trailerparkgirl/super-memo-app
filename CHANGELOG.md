@@ -9,6 +9,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Show/hide button on the password field of the login screen
 - New memo type "Word" (word + meaning) for vocabulary. The memo list switches between memos and words.
   Run `supabase/schema.sql` again to allow the new type.
 - Flash cards tab: practice your words in endless random order, word → meaning or meaning → word, optionally by tag.

@@ -23,6 +23,8 @@ export const ja = {
   login: {
     email: 'メールアドレス',
     password: 'パスワード',
+    showPassword: '表示',
+    hidePassword: '非表示',
     submit: 'ログイン',
     wrongPassword: 'メールアドレスかパスワードが違います',
     failed: 'ログインできませんでした。通信状況を確認してください。',

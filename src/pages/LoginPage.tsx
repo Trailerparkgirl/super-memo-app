@@ -6,6 +6,7 @@ export function LoginPage() {
   const { t } = useI18n()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -33,14 +34,24 @@ export function LoginPage() {
         </label>
         <label className="block space-y-1">
           <span className="text-sm text-slate-600 dark:text-slate-300">{t.login.password}</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputClass}
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`${inputClass} pr-16`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-pressed={showPassword}
+              className="absolute inset-y-0 right-0 px-4 text-sm text-indigo-600 dark:text-indigo-300"
+            >
+              {showPassword ? t.login.hidePassword : t.login.showPassword}
+            </button>
+          </div>
         </label>
         {message && <p className="text-sm text-rose-600 dark:text-rose-400">{message}</p>}
         <button type="submit" disabled={sending} className="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white disabled:opacity-40">

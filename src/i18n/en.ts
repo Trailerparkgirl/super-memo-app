@@ -25,6 +25,8 @@ export const en: Messages = {
   login: {
     email: 'Email',
     password: 'Password',
+    showPassword: 'Show',
+    hidePassword: 'Hide',
     submit: 'Log in',
     wrongPassword: 'Wrong email or password',
     failed: 'Couldn’t log in. Check your connection.',
