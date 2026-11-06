@@ -52,6 +52,9 @@ export const en: Messages = {
 
   review: {
     quit: '✕ Quit',
+    edit: 'Edit',
+    cancelEdit: 'Cancel',
+    saveEdit: 'Save',
     doneTitle: (count) => (count > 0 ? `Reviewed ${plural(count, 'memo')}!` : 'Nothing to review today'),
     doneBody: 'Memos will show up here again when their next review is due.',
     backHome: 'Back to home',
