@@ -82,7 +82,7 @@ export const en: Messages = {
     start: (n) => `Start with ${plural(n, 'word')}`,
     wordList: 'All words',
     empty: 'No words yet. Tap “+ Add word” to add one.',
-    quit: '✕ Finish',
+    quit: '✕ Quit',
     practiced: (n) => `Practiced ${n}×`,
     recallMeaning: 'Try to recall the meaning.',
     recallWord: 'Which word is it?',
