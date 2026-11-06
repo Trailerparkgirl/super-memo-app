@@ -9,6 +9,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Delete a memo from the edit form in flash cards and in reviews
+- Edit a memo's title and body right from the review screen, without leaving the review
 - New memo type "Word" (word + meaning) for vocabulary. The memo list switches between memos and words.
   Run `supabase/schema.sql` again to allow the new type.
 - Flash cards tab: practice your words in endless random order, word → meaning or meaning → word, optionally by tag.
@@ -30,6 +32,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Example sentences for words now come from [Tatoeba](https://tatoeba.org), a free public database of sentences written by people.
   No API key is needed, so the Gemini API key setting was removed. Each example shows its author and license.
   Run `supabase/schema.sql` again to remove the `user_settings` table that stored the key.
+- Flash cards are now the same size as review cards, with the rating buttons at the bottom of the screen
+- The flash cards "Finish" button is now "Quit", matching the review screen, and both Quit buttons are now easier to see
 - Memos and review history are stored in Supabase instead of the browser (IndexedDB).
   Backups from v0.1.0 can be restored into the new version.
 - Save buttons are disabled while saving, to prevent duplicate memos

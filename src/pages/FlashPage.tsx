@@ -5,7 +5,7 @@ import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
 import { flashCards, getDirection, pickNext, setDirection as saveDirection, type FlashDirection } from '../lib/flash'
-import { listMemos, recordReview, updateMemo } from '../lib/memos'
+import { deleteMemo, listMemos, recordReview, updateMemo } from '../lib/memos'
 import { GRADES, preview } from '../lib/scheduler'
 import { useData } from '../lib/useData'
 
@@ -133,6 +133,27 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
     setDraft(null)
   }
 
+  async function remove() {
+    if (saving || !confirm(t.edit.confirmDelete)) return
+    setSaving(true)
+    try {
+      await deleteMemo(memo.id)
+    } catch (e) {
+      console.error(e)
+      alert(t.common.saveFailed)
+      return
+    } finally {
+      setSaving(false)
+    }
+    const rest = cards.filter((m) => m.id !== memo.id)
+    // 最後の1枚を消したら練習を終える
+    if (rest.length === 0) return onQuit()
+    setCards(rest)
+    setMemo(pickNext(rest, lastGrades, memo.id))
+    setDraft(null)
+    setRevealed(false)
+  }
+
   async function rate(grade: Grade) {
     if (!outcomes || saving) return
     const result = outcomes[grade]
@@ -160,16 +181,16 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
   const [prompt, answer] = direction === 'front' ? [memo.title, memo.body] : [memo.body, memo.title]
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-[calc(100dvh-2rem)] flex-col gap-4">
       <header className="flex items-center justify-between">
-        <button onClick={onQuit} className="text-sm text-slate-500">
+        <button onClick={onQuit} className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
           {t.flash.quit}
         </button>
         <span className="text-sm tabular-nums text-slate-500">{t.flash.practiced(count)}</span>
       </header>
 
       {draft ? (
-        <article className="space-y-3 rounded-2xl bg-white p-5 text-sm shadow-sm dark:bg-slate-900">
+        <article className="flex-1 space-y-3 rounded-2xl bg-white p-5 text-sm shadow-sm dark:bg-slate-900">
           <label className="block space-y-1">
             <span className="font-semibold">{t.edit.word}</span>
             <input
@@ -188,6 +209,9 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base dark:border-slate-700 dark:bg-slate-950"
             />
           </label>
+          <button onClick={remove} disabled={saving} className="w-full rounded-xl border border-rose-200 py-3 font-semibold text-rose-600 dark:border-rose-900">
+            {t.edit.delete}
+          </button>
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button onClick={() => setDraft(null)} disabled={saving} className="rounded-xl bg-slate-100 py-3 font-semibold dark:bg-slate-800">
               {t.flash.cancelEdit}
@@ -202,7 +226,7 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
           </div>
         </article>
       ) : (
-        <article className="space-y-4 rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">
+        <article className="flex-1 space-y-4 rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">
           <div className="flex justify-end">
             <button
               onClick={() => setDraft({ title: memo.title, body: memo.body })}
@@ -225,28 +249,30 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
         </article>
       )}
 
-      {draft ? null : outcomes ? (
-        <>
-          <p className="text-center text-xs text-slate-500">{t.review.howWell}</p>
-          <div className="grid grid-cols-4 gap-2">
-            {GRADES.map(({ grade, key, color }) => (
-              <button
-                key={grade}
-                disabled={saving}
-                onClick={() => rate(grade)}
-                className={`${color} flex flex-col items-center rounded-xl py-3 text-white active:opacity-80`}
-              >
-                <span className="text-sm font-semibold">{t.grades[key]}</span>
-                <span className="text-xs opacity-90">{t.interval(outcomes[grade].card.scheduled_days)}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      ) : (
-        <button onClick={() => setRevealed(true)} className="w-full rounded-xl bg-indigo-600 py-4 font-semibold text-white">
-          {t.flash.flip}
-        </button>
-      )}
+      <div className="pb-[env(safe-area-inset-bottom)]">
+        {draft ? null : outcomes ? (
+          <>
+            <p className="mb-2 text-center text-xs text-slate-500">{t.review.howWell}</p>
+            <div className="grid grid-cols-4 gap-2">
+              {GRADES.map(({ grade, key, color }) => (
+                <button
+                  key={grade}
+                  disabled={saving}
+                  onClick={() => rate(grade)}
+                  className={`${color} flex flex-col items-center rounded-xl py-3 text-white active:opacity-80`}
+                >
+                  <span className="text-sm font-semibold">{t.grades[key]}</span>
+                  <span className="text-xs opacity-90">{t.interval(outcomes[grade].card.scheduled_days)}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <button onClick={() => setRevealed(true)} className="w-full rounded-xl bg-indigo-600 py-4 font-semibold text-white">
+            {t.flash.flip}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

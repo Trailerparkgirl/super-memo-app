@@ -52,6 +52,9 @@ export const en: Messages = {
 
   review: {
     quit: '✕ Quit',
+    edit: 'Edit',
+    cancelEdit: 'Cancel',
+    saveEdit: 'Save',
     doneTitle: (count) => (count > 0 ? `Reviewed ${plural(count, 'memo')}!` : 'Nothing to review today'),
     doneBody: 'Memos will show up here again when their next review is due.',
     backHome: 'Back to home',
@@ -79,7 +82,7 @@ export const en: Messages = {
     start: (n) => `Start with ${plural(n, 'word')}`,
     wordList: 'All words',
     empty: 'No words yet. Tap “+ Add word” to add one.',
-    quit: '✕ Finish',
+    quit: '✕ Quit',
     practiced: (n) => `Practiced ${n}×`,
     recallMeaning: 'Try to recall the meaning.',
     recallWord: 'Which word is it?',
