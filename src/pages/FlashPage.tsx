@@ -162,7 +162,7 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
   return (
     <div className="space-y-4">
       <header className="flex items-center justify-between">
-        <button onClick={onQuit} className="text-sm text-slate-500">
+        <button onClick={onQuit} className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
           {t.flash.quit}
         </button>
         <span className="text-sm tabular-nums text-slate-500">{t.flash.practiced(count)}</span>

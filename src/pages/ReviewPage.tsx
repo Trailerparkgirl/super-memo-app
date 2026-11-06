@@ -63,7 +63,7 @@ export function ReviewPage() {
   return (
     <div className="flex min-h-[calc(100dvh-2rem)] flex-col gap-4">
       <header className="flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="text-sm text-slate-500">
+        <button onClick={() => navigate('/')} className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
           {t.review.quit}
         </button>
         <span className="text-sm tabular-nums text-slate-500">
