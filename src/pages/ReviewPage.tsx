@@ -4,7 +4,7 @@ import type { Grade } from 'ts-fsrs'
 import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
-import { listDueMemos, recordReview, updateMemo } from '../lib/memos'
+import { deleteMemo, listDueMemos, recordReview, updateMemo } from '../lib/memos'
 import { GRADES, overdueDays, preview } from '../lib/scheduler'
 
 export function ReviewPage() {
@@ -44,6 +44,24 @@ export function ReviewPage() {
     }
     setQueue((list) => list?.map((m) => (m.id === memo.id ? { ...m, title, body } : m)) ?? null)
     setDraft(null)
+  }
+
+  async function remove() {
+    if (!memo || saving || !confirm(t.edit.confirmDelete)) return
+    setSaving(true)
+    try {
+      await deleteMemo(memo.id)
+    } catch (e) {
+      console.error(e)
+      alert(t.common.saveFailed)
+      return
+    } finally {
+      setSaving(false)
+    }
+    // 消したメモの位置に次のメモが来るので、indexはそのまま
+    setQueue((list) => list?.filter((m) => m.id !== memo.id) ?? null)
+    setDraft(null)
+    setRevealed(false)
   }
 
   async function rate(grade: Grade) {
@@ -109,6 +127,9 @@ export function ReviewPage() {
             <span className="font-semibold">{bodyLabel}</span>
             <textarea value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} rows={4} className={fieldClass} />
           </label>
+          <button onClick={remove} disabled={saving} className="w-full rounded-xl border border-rose-200 py-3 font-semibold text-rose-600 dark:border-rose-900">
+            {t.edit.delete}
+          </button>
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button onClick={() => setDraft(null)} disabled={saving} className="rounded-xl bg-slate-100 py-3 font-semibold dark:bg-slate-800">
               {t.review.cancelEdit}

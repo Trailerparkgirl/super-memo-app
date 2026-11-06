@@ -9,6 +9,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Delete a memo from the edit form in flash cards and in reviews
 - Edit a memo's title and body right from the review screen, without leaving the review
 - New memo type "Word" (word + meaning) for vocabulary. The memo list switches between memos and words.
   Run `supabase/schema.sql` again to allow the new type.
