@@ -166,7 +166,7 @@ export function ReviewPage() {
                 {!isNote && <p className="mb-1 text-xs font-semibold text-slate-500">{isWord ? t.review.meaning : t.review.answer}</p>}
                 {memo.body || <span className="text-slate-400">{t.review.noBody}</span>}
               </div>
-              {isWord && <WordTools key={memo.id} word={memo.title.trim()} meaning={memo.body.trim()} />}
+              {isWord && <WordTools key={memo.id} word={memo.title.trim()} />}
             </>
           ) : (
             <p className="text-sm text-slate-500 dark:text-slate-400">

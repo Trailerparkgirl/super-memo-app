@@ -30,11 +30,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- Example sentences for words now come from [Tatoeba](https://tatoeba.org), a free public database of sentences written by people.
+  No API key is needed, so the Gemini API key setting was removed. Each example shows its author and license.
+  Run `supabase/schema.sql` again to remove the `user_settings` table that stored the key.
 - Flash cards are now the same size as review cards, with the rating buttons at the bottom of the screen
 - The flash cards "Finish" button is now "Quit", matching the review screen, and both Quit buttons are now easier to see
-- The Gemini API key is saved to your account instead of only on the device, so it works on every device you log in to.
-  A key already saved on a device is moved to the account automatically.
-  Run `supabase/schema.sql` again to create the new `user_settings` table.
 - Memos and review history are stored in Supabase instead of the browser (IndexedDB).
   Backups from v0.1.0 can be restored into the new version.
 - Save buttons are disabled while saving, to prevent duplicate memos
