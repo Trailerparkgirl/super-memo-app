@@ -25,6 +25,8 @@ export const en: Messages = {
   login: {
     email: 'Email',
     password: 'Password',
+    showPassword: 'Show',
+    hidePassword: 'Hide',
     submit: 'Log in',
     wrongPassword: 'Wrong email or password',
     failed: 'Couldn’t log in. Check your connection.',
@@ -52,6 +54,9 @@ export const en: Messages = {
 
   review: {
     quit: '✕ Quit',
+    edit: 'Edit',
+    cancelEdit: 'Cancel',
+    saveEdit: 'Save',
     doneTitle: (count) => (count > 0 ? `Reviewed ${plural(count, 'memo')}!` : 'Nothing to review today'),
     doneBody: 'Memos will show up here again when their next review is due.',
     backHome: 'Back to home',
@@ -79,7 +84,7 @@ export const en: Messages = {
     start: (n) => `Start with ${plural(n, 'word')}`,
     wordList: 'All words',
     empty: 'No words yet. Tap “+ Add word” to add one.',
-    quit: '✕ Finish',
+    quit: '✕ Quit',
     practiced: (n) => `Practiced ${n}×`,
     recallMeaning: 'Try to recall the meaning.',
     recallWord: 'Which word is it?',
@@ -93,11 +98,9 @@ export const en: Messages = {
     loading: 'Looking it up…',
     dictionaryFailed: 'Couldn’t load the dictionary. Check your connection and tap again.',
     notInDictionary: (word) => `“${word}” isn’t in the dictionary. Try Google.`,
-    generating: 'Writing an example…',
-    noKey: 'To get AI examples, add a Gemini API key in',
-    badKey: 'The API key doesn’t seem to work. Check it in Settings.',
-    quota: 'Free quota reached. Try again in a little while.',
-    exampleFailed: 'Couldn’t write an example. Try again.',
+    findingExamples: 'Finding examples…',
+    noExamples: (word) => `No example sentences found for “${word}”.`,
+    exampleFailed: 'Couldn’t load examples. Check your connection and tap again.',
   },
 
   list: {
@@ -165,14 +168,6 @@ export const en: Messages = {
     imported: (n) => `Imported ${plural(n, 'memo')}`,
     invalidBackup: 'This is not a Super Memo backup file',
     importFailed: 'Import failed',
-    aiTitle: 'AI examples (Gemini)',
-    aiBody:
-      'Flash card example sentences are written by Google Gemini’s free tier. Create a free API key in Google AI Studio and paste it here. The key is saved to your account, so it works on every device you log in to.',
-    aiGetKey: 'Create an API key ↗',
-    aiKeyPlaceholder: 'Paste API key',
-    aiSave: 'Save',
-    aiSaved: 'Saved',
-    aiRemoved: 'Removed',
     howTitle: 'How reviews work',
     howBody:
       'Your first review comes the day after you write a memo. After that, each review is scheduled based on how well you remembered — right before you’d start forgetting (about 90% recall). The better you know it, the longer the gap: 3 days → 1 week → 1 month…; if you forgot, it shrinks again.',

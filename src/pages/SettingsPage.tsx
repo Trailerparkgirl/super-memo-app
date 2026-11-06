@@ -1,9 +1,7 @@
 import { useRef, useState } from 'react'
 import { LANGUAGES, useI18n } from '../i18n'
 import { supabase } from '../lib/db'
-import { clearCachedGeminiKey, loadGeminiKey, saveGeminiKey } from '../lib/flash'
 import { exportBackup, importBackup, InvalidBackupError } from '../lib/memos'
-import { useData } from '../lib/useData'
 import { useSession } from '../lib/useSession'
 
 const isStandalone =
@@ -14,12 +12,6 @@ export function SettingsPage() {
   const session = useSession()
   const fileInput = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState('')
-  const savedGeminiKey = useData(loadGeminiKey, [])
-
-  async function logout() {
-    await supabase.auth.signOut()
-    clearCachedGeminiKey()
-  }
 
   async function download() {
     let blob: Blob
@@ -100,23 +92,9 @@ export function SettingsPage() {
       </section>
 
       <section className={card}>
-        <h2 className="font-semibold">{t.settings.aiTitle}</h2>
-        <p className="leading-relaxed text-slate-600 dark:text-slate-300">{t.settings.aiBody}</p>
-        <a
-          href="https://aistudio.google.com/apikey"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-block text-indigo-600 underline dark:text-indigo-400"
-        >
-          {t.settings.aiGetKey}
-        </a>
-        {savedGeminiKey !== undefined && <GeminiKeyForm initialKey={savedGeminiKey} />}
-      </section>
-
-      <section className={card}>
         <h2 className="font-semibold">{t.settings.accountTitle}</h2>
         {session?.user.email && <p className="text-slate-600 dark:text-slate-300">{t.settings.loggedInAs(session.user.email)}</p>}
-        <button onClick={logout} className={button}>
+        <button onClick={() => supabase.auth.signOut()} className={button}>
           {t.settings.logout}
         </button>
       </section>
@@ -134,45 +112,3 @@ export function SettingsPage() {
   )
 }
 
-function GeminiKeyForm({ initialKey }: { initialKey: string }) {
-  const { t } = useI18n()
-  const [key, setKey] = useState(initialKey)
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
-
-  async function save() {
-    setSaving(true)
-    try {
-      await saveGeminiKey(key)
-      setMessage(key.trim() ? t.settings.aiSaved : t.settings.aiRemoved)
-    } catch (e) {
-      console.error(e)
-      setMessage(t.common.saveFailed)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <>
-      <div className="flex gap-2">
-        <input
-          type="password"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder={t.settings.aiKeyPlaceholder}
-          autoComplete="off"
-          className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900"
-        />
-        <button
-          onClick={save}
-          disabled={saving}
-          className="rounded-xl border border-slate-200 px-4 font-medium disabled:opacity-40 dark:border-slate-700"
-        >
-          {t.settings.aiSave}
-        </button>
-      </div>
-      {message && <p className="text-indigo-600 dark:text-indigo-400">{message}</p>}
-    </>
-  )
-}

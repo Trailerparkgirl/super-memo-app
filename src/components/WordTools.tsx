@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
-import { AiError, cachedExample, generateExample, googleDefineUrl, lookUp, type DictionaryEntry } from '../lib/flash'
+import { findExamples, googleDefineUrl, lookUp, tatoebaUrl, type DictionaryEntry, type Example } from '../lib/flash'
 
-/** 単語の辞書と AI 例文。カードを表にしてから使う。 */
-export function WordTools({ word, meaning }: { word: string; meaning: string }) {
+/** 単語の辞書と例文（Tatoeba）。カードを表にしてから使う。 */
+export function WordTools({ word }: { word: string }) {
   const { t } = useI18n()
   // まだ引いていないときは undefined、辞書にない単語は null
   const [entry, setEntry] = useState<DictionaryEntry | null | 'loading' | 'error'>()
-  const [example, setExample] = useState(() => cachedExample(word))
-  const [exampleState, setExampleState] = useState<'idle' | 'loading' | AiError['reason']>('idle')
+  // 例文は最初に押したときにまとめて取ってきて、押すたびに次の文を見せる
+  const [examples, setExamples] = useState<Example[] | null>(null)
+  const [exampleIndex, setExampleIndex] = useState(-1)
+  const [exampleState, setExampleState] = useState<'idle' | 'loading' | 'failed'>('idle')
+  const example = examples?.[exampleIndex]
 
   async function define() {
     setEntry('loading')
@@ -21,13 +23,19 @@ export function WordTools({ word, meaning }: { word: string; meaning: string }) 
     }
   }
 
-  async function makeExample() {
+  async function nextExample() {
+    if (examples) {
+      setExampleIndex((i) => (i + 1) % Math.max(1, examples.length))
+      return
+    }
     setExampleState('loading')
     try {
-      setExample(await generateExample(word, meaning))
+      setExamples(await findExamples(word))
+      setExampleIndex(0)
       setExampleState('idle')
     } catch (e) {
-      setExampleState(e instanceof AiError ? e.reason : 'failed')
+      console.error(e)
+      setExampleState('failed')
     }
   }
 
@@ -43,8 +51,12 @@ export function WordTools({ word, meaning }: { word: string; meaning: string }) 
         <a href={googleDefineUrl(word)} target="_blank" rel="noreferrer" className={tool}>
           🔎 Google
         </a>
-        <button onClick={makeExample} disabled={exampleState === 'loading'} className={tool}>
-          ✨ {example ? t.flash.newExample : t.flash.example}
+        <button
+          onClick={nextExample}
+          disabled={exampleState === 'loading' || (examples !== null && examples.length <= 1)}
+          className={tool}
+        >
+          💬 {example ? t.flash.newExample : t.flash.example}
         </button>
       </div>
 
@@ -69,23 +81,23 @@ export function WordTools({ word, meaning }: { word: string; meaning: string }) 
         </div>
       )}
 
-      {exampleState === 'loading' && <p className="text-slate-500">{t.flash.generating}</p>}
-      {exampleState === 'noKey' && (
-        <p className="text-slate-500">
-          {t.flash.noKey}{' '}
-          <Link to="/settings" className="text-indigo-600 underline dark:text-indigo-400">
-            {t.tabs.settings}
-          </Link>
-        </p>
-      )}
-      {exampleState === 'badKey' && <p className="text-rose-500">{t.flash.badKey}</p>}
-      {exampleState === 'quota' && <p className="text-rose-500">{t.flash.quota}</p>}
+      {exampleState === 'loading' && <p className="text-slate-500">{t.flash.findingExamples}</p>}
       {exampleState === 'failed' && <p className="text-rose-500">{t.flash.exampleFailed}</p>}
+      {examples?.length === 0 && (
+        <p className="rounded-xl bg-slate-50 p-3 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">{t.flash.noExamples(word)}</p>
+      )}
       {example && (
-        <p className="rounded-xl bg-indigo-50 p-3 italic dark:bg-indigo-950/50">
-          <span className="mr-1.5 text-xs not-italic text-indigo-600 dark:text-indigo-400">AI</span>
-          {example}
-        </p>
+        <div className="space-y-1 rounded-xl bg-indigo-50 p-3 dark:bg-indigo-950/50">
+          <p className="italic">“{example.text}”</p>
+          <p className="text-right text-xs text-slate-500">
+            <a href={tatoebaUrl(example.id)} target="_blank" rel="noreferrer" className="underline">
+              Tatoeba
+            </a>
+            {example.owner && ` · ${example.owner}`}
+            {example.license && ` · ${example.license}`}
+            {examples && ` · ${exampleIndex + 1}/${examples.length}`}
+          </p>
+        </div>
       )}
     </div>
   )
