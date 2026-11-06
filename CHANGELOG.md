@@ -29,6 +29,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- Flash cards are now the same size as review cards, with the rating buttons at the bottom of the screen
 - The flash cards "Finish" button is now "Quit", matching the review screen, and both Quit buttons are now easier to see
 - The Gemini API key is saved to your account instead of only on the device, so it works on every device you log in to.
   A key already saved on a device is moved to the account automatically.
