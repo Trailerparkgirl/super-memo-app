@@ -160,7 +160,7 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
   const [prompt, answer] = direction === 'front' ? [memo.title, memo.body] : [memo.body, memo.title]
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-[calc(100dvh-2rem)] flex-col gap-4">
       <header className="flex items-center justify-between">
         <button onClick={onQuit} className="text-sm text-slate-500">
           {t.flash.quit}
@@ -169,7 +169,7 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
       </header>
 
       {draft ? (
-        <article className="space-y-3 rounded-2xl bg-white p-5 text-sm shadow-sm dark:bg-slate-900">
+        <article className="flex-1 space-y-3 rounded-2xl bg-white p-5 text-sm shadow-sm dark:bg-slate-900">
           <label className="block space-y-1">
             <span className="font-semibold">{t.edit.word}</span>
             <input
@@ -202,7 +202,7 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
           </div>
         </article>
       ) : (
-        <article className="space-y-4 rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">
+        <article className="flex-1 space-y-4 rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">
           <div className="flex justify-end">
             <button
               onClick={() => setDraft({ title: memo.title, body: memo.body })}
@@ -225,28 +225,30 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
         </article>
       )}
 
-      {draft ? null : outcomes ? (
-        <>
-          <p className="text-center text-xs text-slate-500">{t.review.howWell}</p>
-          <div className="grid grid-cols-4 gap-2">
-            {GRADES.map(({ grade, key, color }) => (
-              <button
-                key={grade}
-                disabled={saving}
-                onClick={() => rate(grade)}
-                className={`${color} flex flex-col items-center rounded-xl py-3 text-white active:opacity-80`}
-              >
-                <span className="text-sm font-semibold">{t.grades[key]}</span>
-                <span className="text-xs opacity-90">{t.interval(outcomes[grade].card.scheduled_days)}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      ) : (
-        <button onClick={() => setRevealed(true)} className="w-full rounded-xl bg-indigo-600 py-4 font-semibold text-white">
-          {t.flash.flip}
-        </button>
-      )}
+      <div className="pb-[env(safe-area-inset-bottom)]">
+        {draft ? null : outcomes ? (
+          <>
+            <p className="mb-2 text-center text-xs text-slate-500">{t.review.howWell}</p>
+            <div className="grid grid-cols-4 gap-2">
+              {GRADES.map(({ grade, key, color }) => (
+                <button
+                  key={grade}
+                  disabled={saving}
+                  onClick={() => rate(grade)}
+                  className={`${color} flex flex-col items-center rounded-xl py-3 text-white active:opacity-80`}
+                >
+                  <span className="text-sm font-semibold">{t.grades[key]}</span>
+                  <span className="text-xs opacity-90">{t.interval(outcomes[grade].card.scheduled_days)}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <button onClick={() => setRevealed(true)} className="w-full rounded-xl bg-indigo-600 py-4 font-semibold text-white">
+            {t.flash.flip}
+          </button>
+        )}
+      </div>
     </div>
   )
 }
