@@ -52,6 +52,9 @@ export const ja = {
 
   review: {
     quit: '✕ 中断',
+    edit: '編集',
+    cancelEdit: 'キャンセル',
+    saveEdit: '保存',
     doneTitle: (count: number) => (count > 0 ? `${count}件の復習が完了！` : '今日の復習はありません'),
     doneBody: '次の復習タイミングになったら、またここに表示されます。',
     backHome: 'ホームに戻る',
@@ -79,7 +82,7 @@ export const ja = {
     start: (n: number) => `${n}語で始める`,
     wordList: '単語の一覧',
     empty: 'まだ単語がありません。右上の「＋ 単語を追加」から登録しましょう。',
-    quit: '✕ 終了',
+    quit: '✕ 中断',
     practiced: (n: number) => `${n}回 練習`,
     recallMeaning: '意味を思い出してみましょう。',
     recallWord: 'どの単語か思い出してみましょう。',

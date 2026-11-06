@@ -5,7 +5,7 @@ import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
 import { flashCards, getDirection, pickNext, setDirection as saveDirection, type FlashDirection } from '../lib/flash'
-import { listMemos, recordReview, updateMemo } from '../lib/memos'
+import { deleteMemo, listMemos, recordReview, updateMemo } from '../lib/memos'
 import { GRADES, preview } from '../lib/scheduler'
 import { useData } from '../lib/useData'
 
@@ -133,6 +133,27 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
     setDraft(null)
   }
 
+  async function remove() {
+    if (saving || !confirm(t.edit.confirmDelete)) return
+    setSaving(true)
+    try {
+      await deleteMemo(memo.id)
+    } catch (e) {
+      console.error(e)
+      alert(t.common.saveFailed)
+      return
+    } finally {
+      setSaving(false)
+    }
+    const rest = cards.filter((m) => m.id !== memo.id)
+    // 最後の1枚を消したら練習を終える
+    if (rest.length === 0) return onQuit()
+    setCards(rest)
+    setMemo(pickNext(rest, lastGrades, memo.id))
+    setDraft(null)
+    setRevealed(false)
+  }
+
   async function rate(grade: Grade) {
     if (!outcomes || saving) return
     const result = outcomes[grade]
@@ -162,7 +183,7 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
   return (
     <div className="space-y-4">
       <header className="flex items-center justify-between">
-        <button onClick={onQuit} className="text-sm text-slate-500">
+        <button onClick={onQuit} className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
           {t.flash.quit}
         </button>
         <span className="text-sm tabular-nums text-slate-500">{t.flash.practiced(count)}</span>
@@ -188,6 +209,9 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base dark:border-slate-700 dark:bg-slate-950"
             />
           </label>
+          <button onClick={remove} disabled={saving} className="w-full rounded-xl border border-rose-200 py-3 font-semibold text-rose-600 dark:border-rose-900">
+            {t.edit.delete}
+          </button>
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button onClick={() => setDraft(null)} disabled={saving} className="rounded-xl bg-slate-100 py-3 font-semibold dark:bg-slate-800">
               {t.flash.cancelEdit}

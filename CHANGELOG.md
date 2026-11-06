@@ -10,6 +10,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ### Added
 
 - Show/hide button on the password field of the login screen
+- Delete a memo from the edit form in flash cards and in reviews
+- Edit a memo's title and body right from the review screen, without leaving the review
 - New memo type "Word" (word + meaning) for vocabulary. The memo list switches between memos and words.
   Run `supabase/schema.sql` again to allow the new type.
 - Flash cards tab: practice your words in endless random order, word → meaning or meaning → word, optionally by tag.
@@ -28,6 +30,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- The flash cards "Finish" button is now "Quit", matching the review screen, and both Quit buttons are now easier to see
 - The Gemini API key is saved to your account instead of only on the device, so it works on every device you log in to.
   A key already saved on a device is moved to the account automatically.
   Run `supabase/schema.sql` again to create the new `user_settings` table.
