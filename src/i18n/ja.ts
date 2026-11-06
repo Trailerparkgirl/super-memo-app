@@ -50,6 +50,9 @@ export const ja = {
 
   review: {
     quit: '✕ 中断',
+    edit: '編集',
+    cancelEdit: 'キャンセル',
+    saveEdit: '保存',
     doneTitle: (count: number) => (count > 0 ? `${count}件の復習が完了！` : '今日の復習はありません'),
     doneBody: '次の復習タイミングになったら、またここに表示されます。',
     backHome: 'ホームに戻る',
