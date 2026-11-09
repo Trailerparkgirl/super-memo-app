@@ -138,6 +138,8 @@ export const ja = {
     tagsPlaceholder: '例：英語 TOEIC',
     saveExisting: '保存する',
     saveNew: '保存して明日から復習する',
+    saveAndAdd: '保存して続けて追加',
+    added: (title: string) => `「${title}」を保存しました。続けて次を入力できます。`,
     confirmDelete: 'このメモを削除しますか？',
     confirmDiscard: '保存していない変更があります。破棄して移動しますか？',
     confirmReset: '学習状況をリセットして、明日から復習し直しますか？',
