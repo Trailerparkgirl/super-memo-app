@@ -71,6 +71,10 @@ export const en: Messages = {
     overdue: (days) => `${plural(days, 'day')} late, so the next review comes sooner`,
     showAnswer: 'Show answer',
     showContent: 'Show content',
+    retryLeft: (n) => `${n} more to retry`,
+    retryHint: 'Another go at the ones you forgot. This is practice only; it doesn’t change the next review date.',
+    stillForgot: 'Still forgot',
+    gotIt: 'Got it',
   },
 
   flash: {

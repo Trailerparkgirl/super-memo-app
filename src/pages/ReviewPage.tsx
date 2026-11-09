@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import type { Grade } from 'ts-fsrs'
+import { Rating, type Grade } from 'ts-fsrs'
 import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
@@ -20,13 +20,16 @@ export function ReviewPage() {
   const [draft, setDraft] = useState<{ title: string; body: string } | null>(null)
   // 押し間違えたら、直前の評価を取り消せる
   const [lastLogId, setLastLogId] = useState<number | null>(null)
+  // 「忘れてた」にしたメモは、最後にもう一度出して覚え直す（練習なので次の復習日は変えない）
+  const [retry, setRetry] = useState<Memo[]>([])
 
   useEffect(() => {
     listDueMemos().then(setQueue, setLoadError)
   }, [])
 
-  const memo = queue?.[index]
-  const outcomes = useMemo(() => (memo && revealed ? preview(memo.card) : null), [memo, revealed])
+  const retrying = !!queue && index >= queue.length
+  const memo = retrying ? retry[0] : queue?.[index]
+  const outcomes = useMemo(() => (memo && revealed && !retrying ? preview(memo.card) : null), [memo, revealed, retrying])
 
   async function saveEdit() {
     if (!memo || !draft || saving) return
@@ -44,7 +47,9 @@ export function ReviewPage() {
     } finally {
       setSaving(false)
     }
-    setQueue((list) => list?.map((m) => (m.id === memo.id ? { ...m, title, body } : m)) ?? null)
+    const edit = (m: Memo) => (m.id === memo.id ? { ...m, title, body } : m)
+    setQueue((list) => list?.map(edit) ?? null)
+    setRetry((list) => list.map(edit))
     setDraft(null)
   }
 
@@ -62,12 +67,18 @@ export function ReviewPage() {
     }
     // 消したメモの位置に次のメモが来るので、indexはそのまま
     setQueue((list) => list?.filter((m) => m.id !== memo.id) ?? null)
+    setRetry((list) => list.filter((m) => m.id !== memo.id))
+    if (retrying) {
+      // 覚え直し中は一覧の最後の次を指したままにする。消したのは評価済みのメモなので取り消しもできなくなる
+      setIndex((i) => i - 1)
+      setLastLogId(null)
+    }
     setDraft(null)
     setRevealed(false)
   }
 
   async function rate(grade: Grade) {
-    if (!memo || !outcomes || saving) return
+    if (!memo || !outcomes || saving || retrying) return
     setSaving(true)
     let logId: number
     try {
@@ -81,9 +92,18 @@ export function ReviewPage() {
       setSaving(false)
     }
     setLastLogId(logId)
+    if (grade === Rating.Again) setRetry((list) => [...list, memo])
     setRevealed(false)
     setDraft(null)
     setIndex((i) => i + 1)
+  }
+
+  /** 覚え直し：思い出せたら終わり、まだ忘れていたら最後に回す */
+  function answerRetry(remembered: boolean) {
+    setRetry(([first, ...rest]) => (remembered ? rest : [...rest, first]))
+    setLastLogId(null)
+    setRevealed(false)
+    setDraft(null)
   }
 
   async function undo() {
@@ -101,6 +121,7 @@ export function ReviewPage() {
       setSaving(false)
     }
     // 答えを出したまま戻るので、すぐに評価し直せる
+    setRetry((list) => list.filter((m) => m.id !== previous.id))
     setLastLogId(null)
     setDraft(null)
     setRevealed(true)
@@ -144,12 +165,12 @@ export function ReviewPage() {
         <div className="flex items-center gap-4">
           {undoButton}
           <span className="text-sm tabular-nums text-slate-500">
-            {index + 1} / {queue.length}
+            {retrying ? t.review.retryLeft(retry.length) : `${index + 1} / ${queue.length}`}
           </span>
         </div>
       </header>
       <div className="h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-        <div className="h-full bg-indigo-500 transition-all" style={{ width: `${(index / queue.length) * 100}%` }} />
+        <div className="h-full bg-indigo-500 transition-all" style={{ width: `${Math.min(1, index / queue.length) * 100}%` }} />
       </div>
 
       {draft ? (
@@ -212,7 +233,19 @@ export function ReviewPage() {
       )}
 
       <div className="pb-[env(safe-area-inset-bottom)]">
-        {draft ? null : outcomes ? (
+        {draft ? null : retrying && revealed ? (
+          <>
+            <p className="mb-2 text-center text-xs text-slate-500">{t.review.retryHint}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => answerRetry(false)} className="rounded-xl bg-rose-500 py-4 text-sm font-semibold text-white active:opacity-80">
+                {t.review.stillForgot}
+              </button>
+              <button onClick={() => answerRetry(true)} className="rounded-xl bg-emerald-500 py-4 text-sm font-semibold text-white active:opacity-80">
+                {t.review.gotIt}
+              </button>
+            </div>
+          </>
+        ) : outcomes ? (
           <>
             {overdueDays(memo.card) > 0 && (
               <p className="mb-1 text-center text-xs text-amber-600 dark:text-amber-400">{t.review.overdue(overdueDays(memo.card))}</p>

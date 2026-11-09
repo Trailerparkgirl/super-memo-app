@@ -69,6 +69,10 @@ export const ja = {
     overdue: (days: number) => `予定より${days}日遅れたので、次の復習を早めます`,
     showAnswer: '答えを見る',
     showContent: '内容を見る',
+    retryLeft: (n: number) => `覚え直し あと${n}件`,
+    retryHint: '忘れてたメモをもう一度。練習なので、次の復習日は変わりません。',
+    stillForgot: 'まだ忘れてた',
+    gotIt: '思い出せた',
   },
 
   flash: {
