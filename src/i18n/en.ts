@@ -45,11 +45,17 @@ export const en: Messages = {
     todaysReview: 'Due today',
     countUnit: '',
     startReview: 'Start review',
+    byTag: 'Or review just one tag (due today)',
     allDone: '🎉 All done for today!',
     noneToday: 'Nothing to review today',
     stats: (reviewed, total) => `Reviewed today: ${reviewed} · Total memos: ${total}`,
     upcoming: 'Upcoming reviews',
     noUpcoming: 'No reviews in the next 7 days',
+    activity: 'Review activity',
+    streak: (days) => (days > 0 ? `🔥 ${plural(days, 'day')} in a row` : 'No streak yet'),
+    longestStreak: (days) => `Longest: ${plural(days, 'day')} in a row`,
+    keepStreak: 'Review today to keep your streak going',
+    activityDay: (date, count) => `${date.toLocaleDateString('en-US')}: ${plural(count, 'review')}`,
   },
 
   review: {

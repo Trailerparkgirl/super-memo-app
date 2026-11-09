@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Rating, type Grade } from 'ts-fsrs'
 import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
@@ -14,6 +14,8 @@ const BATCH = 20
 export function ReviewPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
+  // ホームでタグを選んだときは ?tag=英語 のように、そのタグのメモだけ復習する
+  const tag = useSearchParams()[0].get('tag') ?? undefined
   // 開始時点の復習対象を固定する（途中で一覧が変わらないように）
   const [queue, setQueue] = useState<Memo[] | null>(null)
   const [index, setIndex] = useState(0)
@@ -32,8 +34,8 @@ export function ReviewPage() {
   const [backlog, setBacklog] = useState<Memo[]>([])
 
   useEffect(() => {
-    listDueMemos().then((list) => (list.length > BACKLOG ? setPending(list) : setQueue(list)), setLoadError)
-  }, [])
+    listDueMemos(new Date(), tag).then((list) => (list.length > BACKLOG ? setPending(list) : setQueue(list)), setLoadError)
+  }, [tag])
 
   function start(all: Memo[], count: number) {
     setQueue(all.slice(0, count))
@@ -215,6 +217,7 @@ export function ReviewPage() {
           {t.review.quit}
         </button>
         <div className="flex items-center gap-4">
+          {tag && <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">#{tag}</span>}
           {undoButton}
           <span className="text-sm tabular-nums text-slate-500">
             {retrying ? t.review.retryLeft(retry.length) : `${index + 1} / ${queue.length}`}
