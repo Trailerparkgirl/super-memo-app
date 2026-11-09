@@ -5,7 +5,7 @@ import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
 import { flashCards, getDirection, pickNext, setDirection as saveDirection, type FlashDirection } from '../lib/flash'
-import { deleteMemo, listMemos, recordReview, updateMemo } from '../lib/memos'
+import { deleteMemo, listMemos, recordReview, undoReview, updateMemo } from '../lib/memos'
 import { GRADES, preview } from '../lib/scheduler'
 import { useData } from '../lib/useData'
 
@@ -108,6 +108,8 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
   const [count, setCount] = useState(0)
   // 練習中に単語や意味の間違いに気づいたら、その場で直せる
   const [draft, setDraft] = useState<{ title: string; body: string } | null>(null)
+  // 押し間違えたら、直前の評価を取り消せる（評価する前のカードと練習中の評価を覚えておく）
+  const [last, setLast] = useState<{ memo: Memo; logId: number; grades: Map<string, Grade> } | null>(null)
 
   const outcomes = useMemo(() => (revealed ? preview(memo.card) : null), [memo, revealed])
 
@@ -158,8 +160,9 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
     if (!outcomes || saving) return
     const result = outcomes[grade]
     setSaving(true)
+    let logId: number
     try {
-      await recordReview(memo, grade, result)
+      logId = await recordReview(memo, grade, result)
     } catch (e) {
       // 同じカードのまま、もう一度評価できる
       console.error(e)
@@ -171,11 +174,38 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
     const updated = { ...memo, card: result.card, due: result.card.due.getTime() }
     const nextCards = cards.map((m) => (m.id === memo.id ? updated : m))
     const nextGrades = new Map(lastGrades).set(memo.id, grade)
+    setLast({ memo, logId, grades: lastGrades })
     setCards(nextCards)
     setLastGrades(nextGrades)
     setMemo(pickNext(nextCards, nextGrades, memo.id))
     setCount((n) => n + 1)
     setRevealed(false)
+  }
+
+  async function undo() {
+    if (!last || saving) return
+    const { card, due } = last.memo
+    setSaving(true)
+    try {
+      await undoReview(last.memo.id, last.logId, card)
+    } catch (e) {
+      console.error(e)
+      alert(t.common.saveFailed)
+      return
+    } finally {
+      setSaving(false)
+    }
+    // 評価した後に直した単語や意味はそのまま残す
+    const current = cards.find((m) => m.id === last.memo.id) ?? last.memo
+    const restored = { ...current, card, due }
+    setCards((list) => list.map((m) => (m.id === restored.id ? restored : m)))
+    setLastGrades(last.grades)
+    setMemo(restored)
+    setCount((n) => n - 1)
+    setLast(null)
+    setDraft(null)
+    // 答えを出したまま戻るので、すぐに評価し直せる
+    setRevealed(true)
   }
 
   const [prompt, answer] = direction === 'front' ? [memo.title, memo.body] : [memo.body, memo.title]
@@ -186,7 +216,14 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
         <button onClick={onQuit} className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
           {t.flash.quit}
         </button>
-        <span className="text-sm tabular-nums text-slate-500">{t.flash.practiced(count)}</span>
+        <div className="flex items-center gap-4">
+          {last && (
+            <button onClick={undo} disabled={saving} className="text-sm font-semibold text-indigo-600 disabled:opacity-40 dark:text-indigo-300">
+              {t.flash.undo}
+            </button>
+          )}
+          <span className="text-sm tabular-nums text-slate-500">{t.flash.practiced(count)}</span>
+        </div>
       </header>
 
       {draft ? (
