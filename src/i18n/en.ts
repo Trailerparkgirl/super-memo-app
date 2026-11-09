@@ -167,6 +167,13 @@ export const en: Messages = {
     installTitle: '📱 Add to Home Screen',
     installBody:
       'In Safari, tap Share (□↑) → “Add to Home Screen” to use this like an app. Your due count shows on the icon.',
+    reminderTitle: '🔔 Daily review reminder',
+    reminderBody: 'Get a notification at a set time when you have memos to review that day (no notification on days with nothing due).',
+    reminderUnsupported: 'Notifications aren’t available in this browser. On iPhone, add the app to your Home Screen first (iOS 16.4 or later) and turn this on from there.',
+    reminderOn: 'Turn on notifications',
+    reminderOff: 'Turn off notifications',
+    reminderTime: 'Time',
+    reminderDenied: 'Notifications are blocked. Allow notifications for this app in your device settings.',
     accountTitle: 'Account',
     loggedInAs: (email) => `Logged in as ${email}`,
     logout: 'Log out',

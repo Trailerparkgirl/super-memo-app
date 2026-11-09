@@ -16,6 +16,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'logo.svg'],
+      // 復習リマインダーのプッシュ通知を受け取る処理（public/push-sw.js）
+      workbox: { importScripts: ['push-sw.js'] },
       manifest: {
         name: 'スーパーメモ',
         short_name: 'スーパーメモ',

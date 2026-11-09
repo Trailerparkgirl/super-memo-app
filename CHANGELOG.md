@@ -9,6 +9,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Daily review reminder: turn it on in Settings to get a push notification at a chosen hour when memos are due that day.
+  Needs VAPID keys, the `daily-reminder` edge function and `supabase/cron.sql` (see README). Run `supabase/schema.sql` again to add `push_subscriptions`.
 - "Save & add another" on the new memo screen: saves and clears the form, keeping the type and tags, for quick vocabulary entry
 - Leaving the memo edit screen with unsaved changes (Back button, tab bar, reload) now asks before discarding them
 - Memos rated "Forgot" come back at the end of the review ("2 more to retry") until you get them.
