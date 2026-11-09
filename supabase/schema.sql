@@ -81,6 +81,20 @@ create policy "own push subscriptions" on public.push_subscriptions
   for all to authenticated
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
+-- 復習した日ごとの件数（連続日数とカレンダー用）。tz の時間帯で日付を区切る。
+-- security invoker なので、上の行レベルセキュリティで本人の記録だけが数えられる。
+create or replace function public.review_days(tz text)
+returns table (day date, count bigint)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select (reviewed_at at time zone tz)::date as day, count(*) as count
+  from public.review_logs
+  group by 1
+  order by 1
+$$;
 
 -- 以前は Gemini の API キーをここに保存していた。例文は API キー不要の Tatoeba に変えたので消す。
 drop table if exists public.user_settings;

@@ -43,11 +43,17 @@ export const ja = {
     todaysReview: '今日の復習',
     countUnit: '件',
     startReview: '復習を始める',
+    byTag: 'タグを選んで復習（数字は今日の件数）',
     allDone: '🎉 今日の復習は完了！',
     noneToday: '今日の復習はありません',
     stats: (reviewed: number, total: number) => `今日振り返った数: ${reviewed} ・ メモの総数: ${total}`,
     upcoming: 'これからの復習予定',
     noUpcoming: 'この1週間の復習予定はありません',
+    activity: '復習した日',
+    streak: (days: number) => (days > 0 ? `🔥 ${days}日連続` : 'まだ連続記録なし'),
+    longestStreak: (days: number) => `最長 ${days}日連続`,
+    keepStreak: '今日も復習すると、連続記録が続きます',
+    activityDay: (date: Date, count: number) => `${date.toLocaleDateString('ja-JP')}：${count}件`,
   },
 
   review: {
@@ -73,6 +79,12 @@ export const ja = {
     retryHint: '忘れてたメモをもう一度。練習なので、次の復習日は変わりません。',
     stillForgot: 'まだ忘れてた',
     gotIt: '思い出せた',
+    backlogTitle: (n: number) => `復習が${n}件たまっています`,
+    backlogBody: 'しばらく空いたときは、少しずつ進めるのがおすすめです。残りは予定日のまま残るので、あとで続きをやるか、明日またここから選べます。',
+    doBatch: (n: number) => `まず${n}件やる`,
+    doAll: (n: number) => `${n}件すべてやる`,
+    backlogLeft: (n: number) => `まだ${n}件残っています。続けるか、また明日やりましょう。`,
+    doMore: (n: number) => `あと${n}件やる`,
   },
 
   flash: {

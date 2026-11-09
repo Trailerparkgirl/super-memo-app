@@ -45,11 +45,17 @@ export const en: Messages = {
     todaysReview: 'Due today',
     countUnit: '',
     startReview: 'Start review',
+    byTag: 'Or review just one tag (due today)',
     allDone: '🎉 All done for today!',
     noneToday: 'Nothing to review today',
     stats: (reviewed, total) => `Reviewed today: ${reviewed} · Total memos: ${total}`,
     upcoming: 'Upcoming reviews',
     noUpcoming: 'No reviews in the next 7 days',
+    activity: 'Review activity',
+    streak: (days) => (days > 0 ? `🔥 ${plural(days, 'day')} in a row` : 'No streak yet'),
+    longestStreak: (days) => `Longest: ${plural(days, 'day')} in a row`,
+    keepStreak: 'Review today to keep your streak going',
+    activityDay: (date, count) => `${date.toLocaleDateString('en-US')}: ${plural(count, 'review')}`,
   },
 
   review: {
@@ -75,6 +81,12 @@ export const en: Messages = {
     retryHint: 'Another go at the ones you forgot. This is practice only; it doesn’t change the next review date.',
     stillForgot: 'Still forgot',
     gotIt: 'Got it',
+    backlogTitle: (n) => `${plural(n, 'memo')} piled up`,
+    backlogBody: 'After some time away, it’s easier to go a little at a time. The rest stay due, so you can do more right after or pick up here tomorrow.',
+    doBatch: (n) => `Do ${n} now`,
+    doAll: (n) => `Do all ${n}`,
+    backlogLeft: (n) => `${plural(n, 'memo')} still due. Keep going, or come back tomorrow.`,
+    doMore: (n) => `Do ${n} more`,
   },
 
   flash: {
