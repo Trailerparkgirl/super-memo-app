@@ -49,6 +49,11 @@ export const ja = {
     stats: (reviewed: number, total: number) => `今日振り返った数: ${reviewed} ・ メモの総数: ${total}`,
     upcoming: 'これからの復習予定',
     noUpcoming: 'この1週間の復習予定はありません',
+    activity: '復習した日',
+    streak: (days: number) => (days > 0 ? `🔥 ${days}日連続` : 'まだ連続記録なし'),
+    longestStreak: (days: number) => `最長 ${days}日連続`,
+    keepStreak: '今日も復習すると、連続記録が続きます',
+    activityDay: (date: Date, count: number) => `${date.toLocaleDateString('ja-JP')}：${count}件`,
   },
 
   review: {
