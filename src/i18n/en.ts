@@ -50,6 +50,11 @@ export const en: Messages = {
     stats: (reviewed, total) => `Reviewed today: ${reviewed} · Total memos: ${total}`,
     upcoming: 'Upcoming reviews',
     noUpcoming: 'No reviews in the next 7 days',
+    activity: 'Review activity',
+    streak: (days) => (days > 0 ? `🔥 ${plural(days, 'day')} in a row` : 'No streak yet'),
+    longestStreak: (days) => `Longest: ${plural(days, 'day')} in a row`,
+    keepStreak: 'Review today to keep your streak going',
+    activityDay: (date, count) => `${date.toLocaleDateString('en-US')}: ${plural(count, 'review')}`,
   },
 
   review: {
