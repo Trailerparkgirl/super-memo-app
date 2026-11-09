@@ -79,6 +79,12 @@ export const ja = {
     retryHint: '忘れてたメモをもう一度。練習なので、次の復習日は変わりません。',
     stillForgot: 'まだ忘れてた',
     gotIt: '思い出せた',
+    backlogTitle: (n: number) => `復習が${n}件たまっています`,
+    backlogBody: 'しばらく空いたときは、少しずつ進めるのがおすすめです。残りは予定日のまま残るので、あとで続きをやるか、明日またここから選べます。',
+    doBatch: (n: number) => `まず${n}件やる`,
+    doAll: (n: number) => `${n}件すべてやる`,
+    backlogLeft: (n: number) => `まだ${n}件残っています。続けるか、また明日やりましょう。`,
+    doMore: (n: number) => `あと${n}件やる`,
   },
 
   flash: {

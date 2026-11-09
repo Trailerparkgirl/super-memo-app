@@ -7,6 +7,10 @@ import { type Memo } from '../lib/db'
 import { deleteMemo, listDueMemos, recordReview, undoReview, updateMemo } from '../lib/memos'
 import { GRADES, overdueDays, preview } from '../lib/scheduler'
 
+// しばらく空いて復習がたまったら（BACKLOG 件より多いとき）、BATCH 件ずつ進められるようにする
+const BACKLOG = 30
+const BATCH = 20
+
 export function ReviewPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
@@ -24,10 +28,26 @@ export function ReviewPage() {
   const [lastLogId, setLastLogId] = useState<number | null>(null)
   // 「忘れてた」にしたメモは、最後にもう一度出して覚え直す（練習なので次の復習日は変えない）
   const [retry, setRetry] = useState<Memo[]>([])
+  // たまっているときは、全部やるか少しずつやるかを先に選んでもらう
+  const [pending, setPending] = useState<Memo[] | null>(null)
+  // 少しずつやる場合の、まだ出していないメモ（予定日は変えないので、明日以降も復習対象のまま残る）
+  const [backlog, setBacklog] = useState<Memo[]>([])
 
   useEffect(() => {
-    listDueMemos(new Date(), tag).then(setQueue, setLoadError)
+    listDueMemos(new Date(), tag).then((list) => (list.length > BACKLOG ? setPending(list) : setQueue(list)), setLoadError)
   }, [tag])
+
+  function start(all: Memo[], count: number) {
+    setQueue(all.slice(0, count))
+    setBacklog(all.slice(count))
+    setPending(null)
+  }
+
+  /** 終わったあとに、残りから次の BATCH 件を続けて出す */
+  function continueBacklog() {
+    setQueue((list) => [...(list ?? []), ...backlog.slice(0, BATCH)])
+    setBacklog((list) => list.slice(BATCH))
+  }
 
   const retrying = !!queue && index >= queue.length
   const memo = retrying ? retry[0] : queue?.[index]
@@ -137,6 +157,26 @@ export function ReviewPage() {
   )
 
   if (loadError) throw loadError
+
+  if (pending) {
+    return (
+      <div className="flex min-h-[70dvh] flex-col items-center justify-center gap-4 text-center">
+        <p className="text-5xl">📚</p>
+        <h1 className="text-xl font-bold">{t.review.backlogTitle(pending.length)}</h1>
+        <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">{t.review.backlogBody}</p>
+        <button onClick={() => start(pending, BATCH)} className="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white">
+          {t.review.doBatch(BATCH)}
+        </button>
+        <button onClick={() => start(pending, pending.length)} className="w-full rounded-xl bg-slate-200 py-3 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          {t.review.doAll(pending.length)}
+        </button>
+        <button onClick={() => navigate('/')} className="text-sm text-slate-500">
+          {t.review.backHome}
+        </button>
+      </div>
+    )
+  }
+
   if (!queue) return null
 
   if (!memo) {
@@ -144,9 +184,21 @@ export function ReviewPage() {
       <div className="flex min-h-[70dvh] flex-col items-center justify-center gap-4 text-center">
         <p className="text-5xl">🎉</p>
         <h1 className="text-xl font-bold">{t.review.doneTitle(queue.length)}</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{t.review.doneBody}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{backlog.length > 0 ? t.review.backlogLeft(backlog.length) : t.review.doneBody}</p>
         {undoButton}
-        <Link to="/" className="rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white">
+        {backlog.length > 0 && (
+          <button onClick={continueBacklog} className="rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white">
+            {t.review.doMore(Math.min(BATCH, backlog.length))}
+          </button>
+        )}
+        <Link
+          to="/"
+          className={
+            backlog.length > 0
+              ? 'rounded-xl bg-slate-200 px-8 py-3 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200'
+              : 'rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white'
+          }
+        >
           {t.review.backHome}
         </Link>
       </div>

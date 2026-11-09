@@ -9,6 +9,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- When more than 30 memos are due (e.g. after time away), the review asks "Do 20 now" or "Do all", and offers "Do 20 more" when a batch is done.
+  The rest stay due with their dates unchanged, so a backlog spreads over the next days.
 - Review by tag: Home lists the tags of today's due memos, and tapping one starts a review of only those memos
 - Home shows your review streak ("🔥 12 days in a row"), your longest streak, and a calendar of the last 17 weeks of reviews.
   Run `supabase/schema.sql` again to add the `review_days` function.
