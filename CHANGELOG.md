@@ -11,6 +11,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - "Save & add another" on the new memo screen: saves and clears the form, keeping the type and tags, for quick vocabulary entry
 - Leaving the memo edit screen with unsaved changes (Back button, tab bar, reload) now asks before discarding them
+- Memos rated "Forgot" come back at the end of the review ("2 more to retry") until you get them.
+  This is practice only and doesn't change the next review date.
+- "↶ Undo" button in reviews and flash cards to take back the last rating (restores the schedule and removes the review record)
 - Show/hide button on the password field of the login screen
 - Delete a memo from the edit form in flash cards and in reviews
 - Edit a memo's title and body right from the review screen, without leaving the review

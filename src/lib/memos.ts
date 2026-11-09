@@ -1,4 +1,4 @@
-import type { Grade, RecordLogItem } from 'ts-fsrs'
+import type { Card, Grade, RecordLogItem } from 'ts-fsrs'
 import {
   logFromRow,
   logToRow,
@@ -140,20 +140,33 @@ export async function resetMemo(id: string) {
   notifyChange()
 }
 
-export async function recordReview(memo: Memo, grade: Grade, result: RecordLogItem) {
+/** 復習の記録のIDを返す（取り消しに使う） */
+export async function recordReview(memo: Memo, grade: Grade, result: RecordLogItem): Promise<number> {
   await run(supabase.from('memos').update({ card: result.card, due: result.card.due.toISOString() }).eq('id', memo.id))
-  await run(
-    supabase.from('review_logs').insert(
-      logToRow({
-        memoId: memo.id,
-        rating: grade,
-        reviewedAt: result.log.review,
-        scheduledDays: result.card.scheduled_days,
-        log: result.log,
-        cardBefore: memo.card,
-      }),
-    ),
+  const log = await run<{ id: number }>(
+    supabase
+      .from('review_logs')
+      .insert(
+        logToRow({
+          memoId: memo.id,
+          rating: grade,
+          reviewedAt: result.log.review,
+          scheduledDays: result.card.scheduled_days,
+          log: result.log,
+          cardBefore: memo.card,
+        }),
+      )
+      .select('id')
+      .single(),
   )
+  notifyChange()
+  return log.id
+}
+
+/** 評価の取り消し：カードを評価する前に戻し、復習の記録も消す */
+export async function undoReview(memoId: string, logId: number, cardBefore: Card) {
+  await run(supabase.from('memos').update({ card: cardBefore, due: cardBefore.due.toISOString() }).eq('id', memoId))
+  await run(supabase.from('review_logs').delete().eq('id', logId))
   notifyChange()
 }
 

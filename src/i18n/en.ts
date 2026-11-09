@@ -54,6 +54,7 @@ export const en: Messages = {
 
   review: {
     quit: '✕ Quit',
+    undo: '↶ Undo',
     edit: 'Edit',
     cancelEdit: 'Cancel',
     saveEdit: 'Save',
@@ -70,6 +71,10 @@ export const en: Messages = {
     overdue: (days) => `${plural(days, 'day')} late, so the next review comes sooner`,
     showAnswer: 'Show answer',
     showContent: 'Show content',
+    retryLeft: (n) => `${n} more to retry`,
+    retryHint: 'Another go at the ones you forgot. This is practice only; it doesn’t change the next review date.',
+    stillForgot: 'Still forgot',
+    gotIt: 'Got it',
   },
 
   flash: {
@@ -85,6 +90,7 @@ export const en: Messages = {
     wordList: 'All words',
     empty: 'No words yet. Tap “+ Add word” to add one.',
     quit: '✕ Quit',
+    undo: '↶ Undo',
     practiced: (n) => `Practiced ${n}×`,
     recallMeaning: 'Try to recall the meaning.',
     recallWord: 'Which word is it?',
