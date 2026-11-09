@@ -68,12 +68,23 @@ export async function listMemos(): Promise<Memo[]> {
   return rows.map(memoFromRow)
 }
 
-/** 今日までに復習するメモ（予定日の早い順） */
-export async function listDueMemos(now = new Date()): Promise<Memo[]> {
-  const rows = await selectAll<MemoRow>((from, to) =>
-    supabase.from('memos').select().lte('due', endOfDay(now).toISOString()).order('due').order('id').range(from, to),
-  )
+/** 今日までに復習するメモ（予定日の早い順）。tag を指定すると、そのタグのメモだけ */
+export async function listDueMemos(now = new Date(), tag?: string): Promise<Memo[]> {
+  const rows = await selectAll<MemoRow>((from, to) => {
+    const query = supabase.from('memos').select().lte('due', endOfDay(now).toISOString())
+    return (tag ? query.contains('tags', [tag]) : query).order('due').order('id').range(from, to)
+  })
   return rows.map(memoFromRow)
+}
+
+/** 今日までに復習するメモのタグと、タグごとの件数（タグ名の順） */
+export async function listDueTags(now = new Date()): Promise<[string, number][]> {
+  const rows = await selectAll<{ tags: string[] }>((from, to) =>
+    supabase.from('memos').select('tags').lte('due', endOfDay(now).toISOString()).order('id').range(from, to),
+  )
+  const counts = new Map<string, number>()
+  for (const tag of rows.flatMap((r) => r.tags)) counts.set(tag, (counts.get(tag) ?? 0) + 1)
+  return [...counts].sort(([a], [b]) => a.localeCompare(b))
 }
 
 export function countDueMemos(now = new Date()): Promise<number> {

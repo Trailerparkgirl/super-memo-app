@@ -9,6 +9,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Review by tag: Home lists the tags of today's due memos, and tapping one starts a review of only those memos
 - Home shows your review streak ("🔥 12 days in a row"), your longest streak, and a calendar of the last 17 weeks of reviews.
   Run `supabase/schema.sql` again to add the `review_days` function.
 - "Save & add another" on the new memo screen: saves and clears the form, keeping the type and tags, for quick vocabulary entry

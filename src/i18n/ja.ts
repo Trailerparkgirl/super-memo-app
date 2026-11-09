@@ -43,6 +43,7 @@ export const ja = {
     todaysReview: '今日の復習',
     countUnit: '件',
     startReview: '復習を始める',
+    byTag: 'タグを選んで復習（数字は今日の件数）',
     allDone: '🎉 今日の復習は完了！',
     noneToday: '今日の復習はありません',
     stats: (reviewed: number, total: number) => `今日振り返った数: ${reviewed} ・ メモの総数: ${total}`,
