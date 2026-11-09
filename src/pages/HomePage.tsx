@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
-import { countDueMemos, countMemos, countReviewsSince, listDueDates } from '../lib/memos'
+import { countDueMemos, countMemos, countReviewsSince, listDueDates, listDueTags } from '../lib/memos'
 import { endOfDay, startOfDay } from '../lib/scheduler'
 import { useData } from '../lib/useData'
 import { useToday } from '../lib/useNow'
@@ -17,18 +17,19 @@ export function HomePage() {
       d.setDate(d.getDate() + i + 1)
       return d
     })
-    const [dueCount, total, reviewedToday, upcoming] = await Promise.all([
+    const [dueCount, total, reviewedToday, upcoming, dueTags] = await Promise.all([
       countDueMemos(now),
       countMemos(),
       countReviewsSince(startOfDay(now)),
       listDueDates(startOfDay(days[0]), endOfDay(days[6])),
+      listDueTags(now),
     ])
     const forecast = days.map((d) => ({
       date: d,
       count: upcoming.filter((due) => startOfDay(new Date(due)).getTime() === startOfDay(d).getTime()).length,
     }))
 
-    return { dueCount, total, reviewedToday, forecast }
+    return { dueCount, total, reviewedToday, forecast, dueTags }
   }, [today])
 
   if (!stats) return null
@@ -60,9 +61,27 @@ export function HomePage() {
             <span className="ml-1 text-lg font-medium text-slate-500">{t.home.countUnit}</span>
           </p>
           {stats.dueCount > 0 ? (
-            <Link to="/review" className="mt-4 block rounded-xl bg-indigo-600 py-3 text-center font-semibold text-white">
-              {t.home.startReview}
-            </Link>
+            <>
+              <Link to="/review" className="mt-4 block rounded-xl bg-indigo-600 py-3 text-center font-semibold text-white">
+                {t.home.startReview}
+              </Link>
+              {stats.dueTags.length > 0 && (
+                <div className="mt-3">
+                  <p className="mb-1.5 text-xs text-slate-500 dark:text-slate-400">{t.home.byTag}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {stats.dueTags.map(([tag, count]) => (
+                      <Link
+                        key={tag}
+                        to={`/review?tag=${encodeURIComponent(tag)}`}
+                        className="rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                      >
+                        #{tag} <span className="tabular-nums opacity-70">{count}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">
               {stats.reviewedToday > 0 ? t.home.allDone : t.home.noneToday}

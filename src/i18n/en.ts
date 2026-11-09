@@ -45,6 +45,7 @@ export const en: Messages = {
     todaysReview: 'Due today',
     countUnit: '',
     startReview: 'Start review',
+    byTag: 'Or review just one tag (due today)',
     allDone: '🎉 All done for today!',
     noneToday: 'Nothing to review today',
     stats: (reviewed, total) => `Reviewed today: ${reviewed} · Total memos: ${total}`,
