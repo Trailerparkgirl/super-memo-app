@@ -1,5 +1,8 @@
+import { useAtomValue } from 'jotai'
+import type { MouseEvent } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useI18n } from '../i18n'
+import { unsavedChangesAtom } from '../lib/unsaved'
 
 const icons = {
   home: 'M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10',
@@ -18,10 +21,22 @@ export function Icon({ d, className = 'size-6' }: { d: string; className?: strin
   )
 }
 
+/** 編集中のメモを保存せずに別の画面へ移るときは、確認してから移る */
+function useConfirmLeave() {
+  const { t } = useI18n()
+  const unsaved = useAtomValue(unsavedChangesAtom)
+  const { pathname } = useLocation()
+  return (to: string) => (e: MouseEvent) => {
+    if (unsaved && to !== pathname && !confirm(t.edit.confirmDiscard)) e.preventDefault()
+  }
+}
+
 function Tab({ to, icon, label, badge }: { to: string; icon: string; label: string; badge?: number }) {
+  const confirmLeave = useConfirmLeave()
   return (
     <NavLink
       to={to}
+      onClick={confirmLeave(to)}
       end={to === '/'}
       className={({ isActive }) =>
         `relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`
@@ -40,6 +55,7 @@ function Tab({ to, icon, label, badge }: { to: string; icon: string; label: stri
 
 export function TabBar({ dueCount }: { dueCount: number }) {
   const { t } = useI18n()
+  const confirmLeave = useConfirmLeave()
   // 復習中は集中できるようタブバーを隠す
   if (useLocation().pathname === '/review') return null
 
@@ -48,7 +64,7 @@ export function TabBar({ dueCount }: { dueCount: number }) {
       <div className="mx-auto flex max-w-xl items-end">
         <Tab to="/" icon={icons.home} label={t.tabs.review} badge={dueCount} />
         <Tab to="/memos" icon={icons.memos} label={t.tabs.memos} />
-        <NavLink to="/memos/new" className="flex flex-1 justify-center py-1.5" aria-label={t.tabs.newMemo}>
+        <NavLink to="/memos/new" onClick={confirmLeave('/memos/new')} className="flex flex-1 justify-center py-1.5" aria-label={t.tabs.newMemo}>
           <span className="grid size-12 place-items-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
             <Icon d={icons.plus} className="size-7" />
           </span>

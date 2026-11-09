@@ -139,6 +139,7 @@ export const ja = {
     saveExisting: '保存する',
     saveNew: '保存して明日から復習する',
     confirmDelete: 'このメモを削除しますか？',
+    confirmDiscard: '保存していない変更があります。破棄して移動しますか？',
     confirmReset: '学習状況をリセットして、明日から復習し直しますか？',
     status: '復習の状況',
     nextReview: '次の復習',

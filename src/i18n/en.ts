@@ -141,6 +141,7 @@ export const en: Messages = {
     saveExisting: 'Save',
     saveNew: 'Save — first review tomorrow',
     confirmDelete: 'Delete this memo?',
+    confirmDiscard: 'You have unsaved changes. Discard them?',
     confirmReset: 'Reset your progress and start reviewing again from tomorrow?',
     status: 'Review status',
     nextReview: 'Next review',

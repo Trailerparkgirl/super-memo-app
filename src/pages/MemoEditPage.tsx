@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useSetAtom } from 'jotai'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Rating } from 'ts-fsrs'
 import { useI18n } from '../i18n'
 import { type Memo, type MemoType } from '../lib/db'
 import { createMemo, deleteMemo, getMemo, listLogs, parseTags, resetMemo, updateMemo } from '../lib/memos'
 import { daysUntil, GRADES } from '../lib/scheduler'
+import { unsavedChangesAtom } from '../lib/unsaved'
 import { useData } from '../lib/useData'
 
 export function MemoEditPage() {
@@ -24,12 +26,39 @@ function MemoForm({ memo }: { memo?: Memo }) {
   // フラッシュカード画面から来たときは ?type=word で「単語」を選んだ状態にする
   const [params] = useSearchParams()
 
-  const [type, setType] = useState<MemoType>(memo?.type ?? (params.get('type') === 'word' ? 'word' : 'note'))
-  const [title, setTitle] = useState(memo?.title ?? '')
-  const [body, setBody] = useState(memo?.body ?? '')
-  const [tags, setTags] = useState(memo?.tags.join(' ') ?? '')
+  // 開いたときの内容。これと違えば、保存していない変更がある
+  const [initial] = useState(() => ({
+    type: memo?.type ?? ((params.get('type') === 'word' ? 'word' : 'note') as MemoType),
+    title: memo?.title ?? '',
+    body: memo?.body ?? '',
+    tags: memo?.tags.join(' ') ?? '',
+  }))
+  const [type, setType] = useState(initial.type)
+  const [title, setTitle] = useState(initial.title)
+  const [body, setBody] = useState(initial.body)
+  const [tags, setTags] = useState(initial.tags)
   // 通信中に二度押しして同じメモが2つできないようにする
   const [busy, setBusy] = useState(false)
+
+  // 新しいメモで種類を切り替えただけなら、失うものはないので聞かない
+  const dirty = title !== initial.title || body !== initial.body || tags !== initial.tags || (!!id && type !== initial.type)
+  const setUnsaved = useSetAtom(unsavedChangesAtom)
+  useEffect(() => {
+    setUnsaved(dirty)
+    if (!dirty) return
+    // 再読み込みやタブを閉じるときはブラウザが確認する
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => {
+      window.removeEventListener('beforeunload', warn)
+      setUnsaved(false)
+    }
+  }, [dirty, setUnsaved])
+
+  function back() {
+    if (dirty && !confirm(t.edit.confirmDiscard)) return
+    navigate(-1)
+  }
 
   const isNote = type === 'note'
   const canSave = title.trim() !== '' && (isNote || body.trim() !== '') && !busy
@@ -77,7 +106,7 @@ function MemoForm({ memo }: { memo?: Memo }) {
   return (
     <div className="space-y-4">
       <header className="flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="text-sm text-slate-500">
+        <button onClick={back} className="text-sm text-slate-500">
           {t.edit.back}
         </button>
         <h1 className="font-bold">{id ? t.edit.titleEdit : t.edit.titleNew}</h1>
