@@ -9,6 +9,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Daily review reminder: turn it on in Settings to get a push notification at a chosen hour when memos are due that day.
+  Needs VAPID keys, the `daily-reminder` edge function and `supabase/cron.sql` (see README). Run `supabase/schema.sql` again to add `push_subscriptions`.
 - When more than 30 memos are due (e.g. after time away), the review asks "Do 20 now" or "Do all", and offers "Do 20 more" when a batch is done.
   The rest stay due with their dates unchanged, so a backlog spreads over the next days.
 - Review by tag: Home lists the tags of today's due memos, and tapping one starts a review of only those memos

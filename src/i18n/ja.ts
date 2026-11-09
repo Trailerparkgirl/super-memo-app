@@ -177,6 +177,13 @@ export const ja = {
     installTitle: '📱 ホーム画面に追加しよう',
     installBody:
       'Safariの共有ボタン（□↑）→「ホーム画面に追加」で、アプリのように使えます。アイコンに復習件数が表示されます。',
+    reminderTitle: '🔔 毎日の復習リマインダー',
+    reminderBody: '決まった時刻に、その日の復習があれば通知でお知らせします（復習がない日は通知しません）。',
+    reminderUnsupported: 'このブラウザでは通知を使えません。iPhone では、まずホーム画面に追加（iOS 16.4 以降）して、そのアプリからオンにしてください。',
+    reminderOn: '通知をオンにする',
+    reminderOff: '通知をオフにする',
+    reminderTime: '通知する時刻',
+    reminderDenied: '通知が許可されていません。端末の設定でこのアプリの通知を許可してください。',
     accountTitle: 'アカウント',
     loggedInAs: (email: string) => `${email} でログイン中`,
     logout: 'ログアウト',

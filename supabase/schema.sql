@@ -57,6 +57,30 @@ create policy "own review logs" on public.review_logs
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
 
+-- 毎日の復習リマインダー（Web Push）の送り先。通知を受け取る端末（ブラウザ）ごとに1行。
+-- 送るのは supabase/functions/daily-reminder（毎時、supabase/cron.sql で呼ぶ）
+create table if not exists public.push_subscriptions (
+  endpoint text primary key,
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  p256dh text not null,
+  auth text not null,
+  -- 通知する時刻（その端末の時間帯で 0〜23 時）
+  remind_hour smallint not null default 20 check (remind_hour between 0 and 23),
+  time_zone text not null,
+  -- 通知の言語（ja / en）
+  lang text not null default 'ja',
+  -- 最後に通知した日（その端末の時間帯の日付）。1日に1回だけ送るため
+  last_sent_on date,
+  created_at timestamptz not null default now()
+);
+
+alter table public.push_subscriptions enable row level security;
+
+drop policy if exists "own push subscriptions" on public.push_subscriptions;
+create policy "own push subscriptions" on public.push_subscriptions
+  for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
 -- 復習した日ごとの件数（連続日数とカレンダー用）。tz の時間帯で日付を区切る。
 -- security invoker なので、上の行レベルセキュリティで本人の記録だけが数えられる。
 create or replace function public.review_days(tz text)

@@ -1,11 +1,96 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LANGUAGES, useI18n } from '../i18n'
 import { supabase } from '../lib/db'
 import { exportBackup, importBackup, InvalidBackupError } from '../lib/memos'
+import { disableReminder, enableReminder, getReminderHour, NotificationDeniedError, reminderConfigured, reminderSupported } from '../lib/reminder'
 import { useSession } from '../lib/useSession'
 
 const isStandalone =
   window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
+
+const card = 'space-y-3 rounded-2xl bg-white p-5 text-sm shadow-sm dark:bg-slate-900'
+const button = 'w-full rounded-xl border border-slate-200 py-2.5 font-medium dark:border-slate-700'
+
+const HOURS = Array.from({ length: 24 }, (_, h) => h)
+// はじめて通知をオンにしたときの時刻
+const DEFAULT_HOUR = 20
+
+/** 毎日決まった時刻に「今日の復習」を通知する */
+function ReminderSection() {
+  const { t, lang } = useI18n()
+  // 読み込み中は undefined、通知していなければ null
+  const [hour, setHour] = useState<number | null | undefined>()
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (!reminderConfigured || !reminderSupported) return
+    getReminderHour().then(setHour, (e: unknown) => {
+      console.error(e)
+      setHour(null)
+    })
+  }, [])
+
+  // 言語を切り替えたら、通知の言語も合わせる
+  useEffect(() => {
+    if (typeof hour === 'number') enableReminder(hour, lang).catch(console.error)
+  }, [lang]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function change(task: () => Promise<void>, next: number | null) {
+    setBusy(true)
+    setMessage('')
+    try {
+      await task()
+      setHour(next)
+    } catch (e) {
+      console.error(e)
+      setMessage(e instanceof NotificationDeniedError ? t.settings.reminderDenied : t.common.saveFailed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!reminderConfigured) return null
+
+  return (
+    <section className={card}>
+      <h2 className="font-semibold">{t.settings.reminderTitle}</h2>
+      <p className="leading-relaxed text-slate-600 dark:text-slate-300">{t.settings.reminderBody}</p>
+      {!reminderSupported ? (
+        <p className="text-amber-600 dark:text-amber-400">{t.settings.reminderUnsupported}</p>
+      ) : hour === undefined ? null : hour === null ? (
+        <button onClick={() => change(() => enableReminder(DEFAULT_HOUR, lang), DEFAULT_HOUR)} disabled={busy} className={button}>
+          {t.settings.reminderOn}
+        </button>
+      ) : (
+        <>
+          <label className="flex items-center justify-between gap-3">
+            <span>{t.settings.reminderTime}</span>
+            <select
+              value={hour}
+              disabled={busy}
+              onChange={(e) => {
+                const next = Number(e.target.value)
+                change(() => enableReminder(next, lang), next)
+              }}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+            >
+              {HOURS.map((h) => (
+                <option key={h} value={h}>
+                  {`${h}:00`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button onClick={() => change(disableReminder, null)} disabled={busy} className={button}>
+            {t.settings.reminderOff}
+          </button>
+        </>
+      )}
+      {message && <p className="text-rose-600 dark:text-rose-400">{message}</p>}
+    </section>
+  )
+}
 
 export function SettingsPage() {
   const { t, lang, setLang } = useI18n()
@@ -39,9 +124,6 @@ export function SettingsPage() {
     }
   }
 
-  const card = 'space-y-3 rounded-2xl bg-white p-5 text-sm shadow-sm dark:bg-slate-900'
-  const button = 'w-full rounded-xl border border-slate-200 py-2.5 font-medium dark:border-slate-700'
-
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t.settings.title}</h1>
@@ -67,6 +149,8 @@ export function SettingsPage() {
           ))}
         </div>
       </section>
+
+      <ReminderSection />
 
       <section className={card}>
         <h2 className="font-semibold">{t.settings.backupTitle}</h2>

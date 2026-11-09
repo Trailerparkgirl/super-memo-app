@@ -25,6 +25,27 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxxxx
 
 Vercel では同じ2つを Project Settings → Environment Variables に設定する。
 
+## 毎日の復習リマインダー（任意）
+
+設定画面から、毎日決まった時刻に「今日の復習」をプッシュ通知で受け取れる（Web Push。iPhone はホーム画面に追加したアプリで、iOS 16.4 以降）。
+使わないなら何もしなくてよい（`VITE_VAPID_PUBLIC_KEY` がなければ設定画面に出ない）。
+
+1. 鍵を作る: `npx web-push generate-vapid-keys`
+2. 公開鍵を `.env.local` と Vercel の Environment Variables に足す
+
+   ```
+   VITE_VAPID_PUBLIC_KEY=BXXXXX...
+   ```
+
+3. [Supabase CLI](https://supabase.com/docs/guides/cli) でログインしてプロジェクトをつなぎ（`supabase login` → `supabase link`）、シークレットを設定して関数をデプロイする
+
+   ```sh
+   supabase secrets set VAPID_PUBLIC_KEY=BXXXXX... VAPID_PRIVATE_KEY=xxxxx VAPID_SUBJECT=mailto:you@example.com CRON_SECRET=<長いランダムな文字列>
+   supabase functions deploy daily-reminder --no-verify-jwt
+   ```
+
+4. SQL Editor で `supabase/schema.sql` をもう一度実行し、`supabase/cron.sql` の `<project-ref>` と `<cron-secret>` を置き換えて実行する（毎時0分に関数が呼ばれる）
+
 ## デプロイ（Vercel）
 
 デプロイするのは2つのブランチだけ（`vercel.json` の `git.deploymentEnabled`）。
