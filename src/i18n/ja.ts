@@ -52,6 +52,7 @@ export const ja = {
 
   review: {
     quit: '✕ 中断',
+    undo: '↶ 取り消す',
     edit: '編集',
     cancelEdit: 'キャンセル',
     saveEdit: '保存',
@@ -83,6 +84,7 @@ export const ja = {
     wordList: '単語の一覧',
     empty: 'まだ単語がありません。右上の「＋ 単語を追加」から登録しましょう。',
     quit: '✕ 中断',
+    undo: '↶ 取り消す',
     practiced: (n: number) => `${n}回 練習`,
     recallMeaning: '意味を思い出してみましょう。',
     recallWord: 'どの単語か思い出してみましょう。',

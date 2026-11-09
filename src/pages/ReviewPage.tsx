@@ -4,7 +4,7 @@ import type { Grade } from 'ts-fsrs'
 import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
-import { deleteMemo, listDueMemos, recordReview, updateMemo } from '../lib/memos'
+import { deleteMemo, listDueMemos, recordReview, undoReview, updateMemo } from '../lib/memos'
 import { GRADES, overdueDays, preview } from '../lib/scheduler'
 
 export function ReviewPage() {
@@ -18,6 +18,8 @@ export function ReviewPage() {
   const [loadError, setLoadError] = useState<unknown>()
   // 復習中に間違いに気づいたら、その場で直せる
   const [draft, setDraft] = useState<{ title: string; body: string } | null>(null)
+  // 押し間違えたら、直前の評価を取り消せる
+  const [lastLogId, setLastLogId] = useState<number | null>(null)
 
   useEffect(() => {
     listDueMemos().then(setQueue, setLoadError)
@@ -67,8 +69,9 @@ export function ReviewPage() {
   async function rate(grade: Grade) {
     if (!memo || !outcomes || saving) return
     setSaving(true)
+    let logId: number
     try {
-      await recordReview(memo, grade, outcomes[grade])
+      logId = await recordReview(memo, grade, outcomes[grade])
     } catch (e) {
       // 同じカードのまま、もう一度評価できる
       console.error(e)
@@ -77,10 +80,38 @@ export function ReviewPage() {
     } finally {
       setSaving(false)
     }
+    setLastLogId(logId)
     setRevealed(false)
     setDraft(null)
     setIndex((i) => i + 1)
   }
+
+  async function undo() {
+    // 一覧のメモは評価しても書き換えていないので、評価する前のカードのまま
+    const previous = queue?.[index - 1]
+    if (!previous || lastLogId === null || saving) return
+    setSaving(true)
+    try {
+      await undoReview(previous.id, lastLogId, previous.card)
+    } catch (e) {
+      console.error(e)
+      alert(t.common.saveFailed)
+      return
+    } finally {
+      setSaving(false)
+    }
+    // 答えを出したまま戻るので、すぐに評価し直せる
+    setLastLogId(null)
+    setDraft(null)
+    setRevealed(true)
+    setIndex((i) => i - 1)
+  }
+
+  const undoButton = lastLogId !== null && (
+    <button onClick={undo} disabled={saving} className="text-sm font-semibold text-indigo-600 disabled:opacity-40 dark:text-indigo-300">
+      {t.review.undo}
+    </button>
+  )
 
   if (loadError) throw loadError
   if (!queue) return null
@@ -91,6 +122,7 @@ export function ReviewPage() {
         <p className="text-5xl">🎉</p>
         <h1 className="text-xl font-bold">{t.review.doneTitle(queue.length)}</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">{t.review.doneBody}</p>
+        {undoButton}
         <Link to="/" className="rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white">
           {t.review.backHome}
         </Link>
@@ -109,9 +141,12 @@ export function ReviewPage() {
         <button onClick={() => navigate('/')} className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
           {t.review.quit}
         </button>
-        <span className="text-sm tabular-nums text-slate-500">
-          {index + 1} / {queue.length}
-        </span>
+        <div className="flex items-center gap-4">
+          {undoButton}
+          <span className="text-sm tabular-nums text-slate-500">
+            {index + 1} / {queue.length}
+          </span>
+        </div>
       </header>
       <div className="h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
         <div className="h-full bg-indigo-500 transition-all" style={{ width: `${(index / queue.length) * 100}%` }} />
