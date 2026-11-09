@@ -9,6 +9,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Memos rated "Forgot" come back at the end of the review ("2 more to retry") until you get them.
+  This is practice only and doesn't change the next review date.
 - "↶ Undo" button in reviews and flash cards to take back the last rating (restores the schedule and removes the review record)
 - Show/hide button on the password field of the login screen
 - Delete a memo from the edit form in flash cards and in reviews
