@@ -9,6 +9,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- "Save & add another" on the new memo screen: saves and clears the form, keeping the type and tags, for quick vocabulary entry
 - Leaving the memo edit screen with unsaved changes (Back button, tab bar, reload) now asks before discarding them
 - Memos rated "Forgot" come back at the end of the review ("2 more to retry") until you get them.
   This is practice only and doesn't change the next review date.

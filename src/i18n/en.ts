@@ -146,6 +146,8 @@ export const en: Messages = {
     tagsPlaceholder: 'e.g. English vocabulary',
     saveExisting: 'Save',
     saveNew: 'Save — first review tomorrow',
+    saveAndAdd: 'Save & add another',
+    added: (title) => `Saved “${title}”. Type the next one.`,
     confirmDelete: 'Delete this memo?',
     confirmDiscard: 'You have unsaved changes. Discard them?',
     confirmReset: 'Reset your progress and start reviewing again from tomorrow?',

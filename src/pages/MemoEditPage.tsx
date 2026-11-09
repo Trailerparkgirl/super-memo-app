@@ -1,5 +1,5 @@
 import { useSetAtom } from 'jotai'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Rating } from 'ts-fsrs'
 import { useI18n } from '../i18n'
@@ -26,8 +26,8 @@ function MemoForm({ memo }: { memo?: Memo }) {
   // フラッシュカード画面から来たときは ?type=word で「単語」を選んだ状態にする
   const [params] = useSearchParams()
 
-  // 開いたときの内容。これと違えば、保存していない変更がある
-  const [initial] = useState(() => ({
+  // 開いたとき（続けて追加したときは保存した直後）の内容。これと違えば、保存していない変更がある
+  const [initial, setInitial] = useState(() => ({
     type: memo?.type ?? ((params.get('type') === 'word' ? 'word' : 'note') as MemoType),
     title: memo?.title ?? '',
     body: memo?.body ?? '',
@@ -39,6 +39,9 @@ function MemoForm({ memo }: { memo?: Memo }) {
   const [tags, setTags] = useState(initial.tags)
   // 通信中に二度押しして同じメモが2つできないようにする
   const [busy, setBusy] = useState(false)
+  // 「保存して続けて追加」で最後に保存したもの（保存できたことを知らせる）
+  const [added, setAdded] = useState<string | null>(null)
+  const titleRef = useRef<HTMLTextAreaElement>(null)
 
   // 新しいメモで種類を切り替えただけなら、失うものはないので聞かない
   const dirty = title !== initial.title || body !== initial.body || tags !== initial.tags || (!!id && type !== initial.type)
@@ -91,6 +94,18 @@ function MemoForm({ memo }: { memo?: Memo }) {
     if (await write(() => (id ? updateMemo(id, input) : createMemo(input)))) navigate(listPath)
   }
 
+  /** 新しいメモを保存して、種類とタグはそのままに次のメモを書き始める */
+  async function saveAndAdd() {
+    if (id || !canSave) return
+    const input = { type, title: title.trim(), body: body.trim(), tags: parseTags(tags) }
+    if (!(await write(() => createMemo(input)))) return
+    setInitial({ type, title: '', body: '', tags })
+    setTitle('')
+    setBody('')
+    setAdded(input.title)
+    titleRef.current?.focus()
+  }
+
   async function remove() {
     if (!id || busy || !confirm(t.edit.confirmDelete)) return
     if (await write(() => deleteMemo(id))) navigate(listPath, { replace: true })
@@ -133,9 +148,12 @@ function MemoForm({ memo }: { memo?: Memo }) {
         ))}
       </div>
 
+      {added && <p className="text-sm text-emerald-600 dark:text-emerald-400">{t.edit.added(added)}</p>}
+
       <label className="block space-y-1">
         <span className="text-sm text-slate-600 dark:text-slate-300">{fields.title}</span>
         <textarea
+          ref={titleRef}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           rows={fields.titleRows}
@@ -164,6 +182,16 @@ function MemoForm({ memo }: { memo?: Memo }) {
       <button onClick={save} disabled={!canSave} className="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white disabled:opacity-40">
         {id ? t.edit.saveExisting : t.edit.saveNew}
       </button>
+
+      {!id && (
+        <button
+          onClick={saveAndAdd}
+          disabled={!canSave}
+          className="w-full rounded-xl border border-indigo-200 py-3 font-semibold text-indigo-600 disabled:opacity-40 dark:border-indigo-900 dark:text-indigo-300"
+        >
+          {t.edit.saveAndAdd}
+        </button>
+      )}
 
       {memo && (
         <section className="space-y-3 rounded-2xl bg-white p-4 text-sm shadow-sm dark:bg-slate-900">
