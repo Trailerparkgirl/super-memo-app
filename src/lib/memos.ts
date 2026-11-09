@@ -103,6 +103,13 @@ export async function listDueDates(from: Date, to: Date): Promise<number[]> {
   return rows.map((r) => new Date(r.due).getTime())
 }
 
+/** 復習した日（YYYY-MM-DD、この端末の時間帯）ごとの件数 */
+export async function reviewDayCounts(): Promise<Map<string, number>> {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const rows = await selectAll<{ day: string; count: number }>((from, to) => supabase.rpc('review_days', { tz }).range(from, to))
+  return new Map(rows.map((r) => [r.day, Number(r.count)]))
+}
+
 /** 新しい順 */
 export async function listLogs(memoId: string): Promise<ReviewLog[]> {
   const rows = await selectAll<ReviewLogRow>((from, to) =>

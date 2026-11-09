@@ -1,9 +1,21 @@
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
-import { countDueMemos, countMemos, countReviewsSince, listDueDates } from '../lib/memos'
+import { calendarWeeks, currentStreak, dayKey, longestStreak } from '../lib/activity'
+import { countDueMemos, countMemos, countReviewsSince, listDueDates, reviewDayCounts } from '../lib/memos'
 import { endOfDay, startOfDay } from '../lib/scheduler'
 import { useData } from '../lib/useData'
 import { useToday } from '../lib/useNow'
+
+// 活動カレンダーに出す週の数（スマホの幅に収まるくらい）
+const CALENDAR_WEEKS = 17
+
+/** 復習した件数が多い日ほど濃くする */
+function shade(count: number): string {
+  if (count === 0) return 'bg-slate-100 dark:bg-slate-800'
+  if (count < 5) return 'bg-indigo-200 dark:bg-indigo-900'
+  if (count < 15) return 'bg-indigo-400 dark:bg-indigo-700'
+  return 'bg-indigo-600 dark:bg-indigo-400'
+}
 
 export function HomePage() {
   const { t } = useI18n()
@@ -17,18 +29,24 @@ export function HomePage() {
       d.setDate(d.getDate() + i + 1)
       return d
     })
-    const [dueCount, total, reviewedToday, upcoming] = await Promise.all([
+    const [dueCount, total, reviewedToday, upcoming, activity] = await Promise.all([
       countDueMemos(now),
       countMemos(),
       countReviewsSince(startOfDay(now)),
       listDueDates(startOfDay(days[0]), endOfDay(days[6])),
+      reviewDayCounts(),
     ])
     const forecast = days.map((d) => ({
       date: d,
       count: upcoming.filter((due) => startOfDay(new Date(due)).getTime() === startOfDay(d).getTime()).length,
     }))
 
-    return { dueCount, total, reviewedToday, forecast }
+    const calendar = calendarWeeks(CALENDAR_WEEKS, now)
+    const streak = currentStreak(activity, now)
+    // 連続記録があって今日まだ復習していなければ、続けるよう促す
+    const streakAtRisk = streak > 0 && !activity.has(dayKey(now))
+
+    return { dueCount, total, reviewedToday, forecast, activity, calendar, streak, streakAtRisk }
   }, [today])
 
   if (!stats) return null
@@ -69,6 +87,34 @@ export function HomePage() {
             </p>
           )}
           <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{t.home.stats(stats.reviewedToday, stats.total)}</p>
+        </section>
+      )}
+
+      {stats.total > 0 && (
+        <section className="rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">
+          <div className="mb-3 flex items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-300">{t.home.activity}</h2>
+            <p className="text-sm font-semibold">{t.home.streak(stats.streak)}</p>
+          </div>
+          <div className="flex gap-[3px]">
+            {stats.calendar.map((week, i) => (
+              <div key={i} className="flex flex-1 flex-col gap-[3px]">
+                {week.map((day, j) => {
+                  const count = day ? (stats.activity.get(dayKey(day)) ?? 0) : 0
+                  return (
+                    <div
+                      key={j}
+                      title={day ? t.home.activityDay(day, count) : undefined}
+                      className={`aspect-square rounded-[3px] ${day ? shade(count) : ''}`}
+                    />
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            {stats.streakAtRisk ? t.home.keepStreak : t.home.longestStreak(longestStreak(stats.activity))}
+          </p>
         </section>
       )}
 
