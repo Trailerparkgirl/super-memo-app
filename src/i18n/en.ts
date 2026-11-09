@@ -75,6 +75,12 @@ export const en: Messages = {
     retryHint: 'Another go at the ones you forgot. This is practice only; it doesn’t change the next review date.',
     stillForgot: 'Still forgot',
     gotIt: 'Got it',
+    backlogTitle: (n) => `${plural(n, 'memo')} piled up`,
+    backlogBody: 'After some time away, it’s easier to go a little at a time. The rest stay due, so you can do more right after or pick up here tomorrow.',
+    doBatch: (n) => `Do ${n} now`,
+    doAll: (n) => `Do all ${n}`,
+    backlogLeft: (n) => `${plural(n, 'memo')} still due. Keep going, or come back tomorrow.`,
+    doMore: (n) => `Do ${n} more`,
   },
 
   flash: {

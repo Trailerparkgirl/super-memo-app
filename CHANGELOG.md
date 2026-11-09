@@ -9,6 +9,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- When more than 30 memos are due (e.g. after time away), the review asks "Do 20 now" or "Do all", and offers "Do 20 more" when a batch is done.
+  The rest stay due with their dates unchanged, so a backlog spreads over the next days.
 - "Save & add another" on the new memo screen: saves and clears the form, keeping the type and tags, for quick vocabulary entry
 - Leaving the memo edit screen with unsaved changes (Back button, tab bar, reload) now asks before discarding them
 - Memos rated "Forgot" come back at the end of the review ("2 more to retry") until you get them.
