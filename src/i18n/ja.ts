@@ -52,6 +52,7 @@ export const ja = {
 
   review: {
     quit: '✕ 中断',
+    undo: '↶ 取り消す',
     edit: '編集',
     cancelEdit: 'キャンセル',
     saveEdit: '保存',
@@ -68,6 +69,10 @@ export const ja = {
     overdue: (days: number) => `予定より${days}日遅れたので、次の復習を早めます`,
     showAnswer: '答えを見る',
     showContent: '内容を見る',
+    retryLeft: (n: number) => `覚え直し あと${n}件`,
+    retryHint: '忘れてたメモをもう一度。練習なので、次の復習日は変わりません。',
+    stillForgot: 'まだ忘れてた',
+    gotIt: '思い出せた',
   },
 
   flash: {
@@ -83,6 +88,7 @@ export const ja = {
     wordList: '単語の一覧',
     empty: 'まだ単語がありません。右上の「＋ 単語を追加」から登録しましょう。',
     quit: '✕ 中断',
+    undo: '↶ 取り消す',
     practiced: (n: number) => `${n}回 練習`,
     recallMeaning: '意味を思い出してみましょう。',
     recallWord: 'どの単語か思い出してみましょう。',
@@ -138,7 +144,10 @@ export const ja = {
     tagsPlaceholder: '例：英語 TOEIC',
     saveExisting: '保存する',
     saveNew: '保存して明日から復習する',
+    saveAndAdd: '保存して続けて追加',
+    added: (title: string) => `「${title}」を保存しました。続けて次を入力できます。`,
     confirmDelete: 'このメモを削除しますか？',
+    confirmDiscard: '保存していない変更があります。破棄して移動しますか？',
     confirmReset: '学習状況をリセットして、明日から復習し直しますか？',
     status: '復習の状況',
     nextReview: '次の復習',
