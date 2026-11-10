@@ -22,6 +22,11 @@ create table if not exists public.memos (
 alter table public.memos drop constraint if exists memos_type_check;
 alter table public.memos add constraint memos_type_check check (type in ('note', 'qa', 'word'));
 
+-- 勉強している言語（en: 英語 / de: ドイツ語 / ja: 日本語）。前のバージョンで作ったメモは英語にする
+alter table public.memos add column if not exists lang text not null default 'en';
+alter table public.memos drop constraint if exists memos_lang_check;
+alter table public.memos add constraint memos_lang_check check (lang in ('en', 'de', 'ja'));
+
 create index if not exists memos_user_due_idx on public.memos (user_id, due);
 
 create table if not exists public.review_logs (

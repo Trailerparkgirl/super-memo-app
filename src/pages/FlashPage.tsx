@@ -1,13 +1,15 @@
-import { useSetAtom } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Grade } from 'ts-fsrs'
 import { SpeakButton } from '../components/SpeakButton'
+import { StudyLangPicker } from '../components/StudyLangPicker'
 import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
 import { flashCards, getDirection, pickNext, setDirection as saveDirection, type FlashDirection } from '../lib/flash'
 import { focusModeAtom } from '../lib/focus'
+import { PROFILES, studyFilterAtom } from '../lib/languages'
 import { deleteMemo, listMemos, recordReview, undoReview, updateMemo } from '../lib/memos'
 import { GRADES, preview } from '../lib/scheduler'
 import { useData } from '../lib/useData'
@@ -16,17 +18,20 @@ import { useData } from '../lib/useData'
 export function FlashPage() {
   const { t } = useI18n()
   const memos = useData(listMemos, [])
+  const filter = useAtomValue(studyFilterAtom)
   const [direction, setDirection] = useState(getDirection)
-  const [tag, setTag] = useState<string | null>(null)
+  const [selectedTag, setTag] = useState<string | null>(null)
   // 練習中のカード（開始時点のものを使い、途中で一覧が変わっても影響しない）
   const [session, setSession] = useState<Memo[] | null>(null)
 
-  const words = useMemo(() => flashCards(memos ?? [], null), [memos])
+  const words = useMemo(() => flashCards(memos ?? [], null).filter((m) => filter === 'all' || m.lang === filter), [memos, filter])
   const tags = useMemo(() => [...new Set(words.flatMap((m) => m.tags))].sort(), [words])
+  // 言語を切り替えて、選んでいたタグの単語がなくなったら「すべて」に戻す
+  const tag = selectedTag && tags.includes(selectedTag) ? selectedTag : null
   const cards = useMemo(() => flashCards(words, tag), [words, tag])
 
   if (!memos) return null
-  if (session) return <FlashSession cards={session} direction={direction} onQuit={() => setSession(null)} />
+  if (session) return <FlashSession cards={session} direction={direction} showFlag={filter === 'all'} onQuit={() => setSession(null)} />
 
   function chooseDirection(next: FlashDirection) {
     setDirection(next)
@@ -47,6 +52,8 @@ export function FlashPage() {
         </div>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t.flash.intro}</p>
       </div>
+
+      <StudyLangPicker />
 
       <section className="space-y-3 rounded-2xl bg-white p-5 text-sm shadow-sm dark:bg-slate-900">
         <h2 className="font-semibold">{t.flash.direction}</h2>
@@ -100,7 +107,18 @@ export function FlashPage() {
   )
 }
 
-function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[]; direction: FlashDirection; onQuit: () => void }) {
+function FlashSession({
+  cards: initialCards,
+  direction,
+  showFlag,
+  onQuit,
+}: {
+  cards: Memo[]
+  direction: FlashDirection
+  /** すべての言語をまとめて練習しているときは、どの言語か旗でわかるようにする */
+  showFlag: boolean
+  onQuit: () => void
+}) {
   const { t } = useI18n()
   // 評価するとカードの学習状況が変わるので、手元でも更新しておく
   const [cards, setCards] = useState(initialCards)
@@ -130,7 +148,7 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
     if (!title) return
     setSaving(true)
     try {
-      await updateMemo(memo.id, { type: memo.type, title, body, tags: memo.tags })
+      await updateMemo(memo.id, { type: memo.type, lang: memo.lang, title, body, tags: memo.tags })
     } catch (e) {
       // 入力した内容のまま、もう一度保存できる
       console.error(e)
@@ -274,7 +292,8 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
         </article>
       ) : (
         <article className="flex-1 space-y-4 rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            <span>{showFlag && PROFILES[memo.lang].flag}</span>
             <button
               onClick={() => setDraft({ title: memo.title, body: memo.body })}
               className="text-sm text-indigo-600 dark:text-indigo-300"
@@ -284,15 +303,15 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
           </div>
           <p className="min-h-24 text-center text-2xl font-bold whitespace-pre-wrap">
             {prompt}
-            {direction === 'front' && <SpeakButton text={memo.title.trim()} />}
+            {direction === 'front' && <SpeakButton text={memo.title.trim()} lang={memo.lang} />}
           </p>
           {revealed ? (
             <>
               <p className="border-t border-slate-200 pt-4 text-center text-lg whitespace-pre-wrap dark:border-slate-700">
                 {answer}
-                {direction === 'back' && <SpeakButton text={memo.title.trim()} />}
+                {direction === 'back' && <SpeakButton text={memo.title.trim()} lang={memo.lang} />}
               </p>
-              <WordTools key={`${memo.id}-${count}-${memo.title}`} word={memo.title.trim()} />
+              <WordTools key={`${memo.id}-${count}-${memo.title}`} word={memo.title.trim()} lang={memo.lang} />
             </>
           ) : (
             <p className="text-center text-sm text-slate-500 dark:text-slate-400">

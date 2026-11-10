@@ -9,6 +9,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Study several languages separately: English, German and Japanese.
+  Each memo has a language (existing memos are English), and a switcher (All / 🇬🇧 / 🇩🇪 / 🇯🇵) on Home, Memos and Flash cards shows only that language's memos, reviews and words. New memos get the selected language.
+  Define, Example and 🔊 work for each language: German and Japanese definitions, IPA and native-speaker recordings come from Wiktionary; example sentences from Tatoeba now come with a translation (Japanese when the app is in Japanese, otherwise English); the device voice reads each word in its own language, and the voice can be chosen per language in Settings.
+  Words written as “der Hund” or “sich freuen” are looked up as “Hund” / “freuen” but read aloud as written.
+  Run `supabase/schema.sql` again to add the `lang` column.
 - Import your own word list in Settings → “📥 Import a word list”: choose a CSV / TSV / TXT file or paste the list.
   One word per line as `word,meaning,tags` (tags optional); tab-separated files exported from Excel, Google Sheets, Quizlet and Anki also work.
   Words you already have are skipped, and an example file can be downloaded.

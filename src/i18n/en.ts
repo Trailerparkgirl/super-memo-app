@@ -35,6 +35,7 @@ export const en: Messages = {
   tabs: { review: 'Review', memos: 'Memos', newMemo: 'New memo', flash: 'Flash', settings: 'Settings' },
   memoType: { note: 'Note', qa: 'Q&A', word: 'Word' },
   grades: { again: 'Forgot', hard: 'Hard', good: 'Good', easy: 'Easy' },
+  studyLang: { all: 'All', en: 'English', de: 'German', ja: 'Japanese' },
 
   home: {
     welcomeTitle: 'Welcome!',
@@ -145,7 +146,8 @@ export const en: Messages = {
     typeWord: 'Word',
     word: 'Word',
     meaning: 'Meaning',
-    wordPlaceholder: 'e.g. scrutiny',
+    language: 'Language',
+    wordPlaceholder: (sample) => `e.g. ${sample}`,
     meaningPlaceholder: 'e.g. close, careful examination',
     question: 'Question',
     title: 'Title',
@@ -194,11 +196,11 @@ export const en: Messages = {
     female: 'Female',
     male: 'Male',
     voiceBest: 'Most natural voice (auto)',
-    noVoiceForGender: 'This device has no English voice of this kind, so the most natural available voice is used.',
+    noVoiceForGender: 'This device has no voice of this kind, so the most natural available voice is used.',
+    noVoiceForLanguage: 'This device has no voice for this language. See below for how to add one.',
     voiceTest: 'Test voice',
-    voiceSample: 'Hello! This is how your words will sound.',
     voiceTip:
-      'Still sounds robotic? On iPhone, go to Settings → Accessibility → Spoken Content → Voices → English, download a voice marked “Enhanced” or “Premium”, then choose it here.',
+      'Still sounds robotic, or no voice? On iPhone, go to Settings → Accessibility → Spoken Content → Voices → choose the language, download a voice marked “Enhanced” or “Premium”, then choose it here.',
     voiceUnsupported: 'This browser can’t read words aloud. Recordings still play when the dictionary has one.',
     accountTitle: 'Account',
     loggedInAs: (email) => `Logged in as ${email}`,
@@ -214,6 +216,7 @@ export const en: Messages = {
     wordListBody: 'Add your own word list as “Word” memos all at once. Put one word per line as “word,meaning,tags” (tags are optional).',
     wordListFormat:
       'Works with CSV (comma-separated) and tab-separated files exported from Excel, Google Sheets, Quizlet or Anki. Put a meaning that contains commas in "quotes". A header line (like “word”), empty lines and lines starting with # are skipped. Words you already have aren’t added again.',
+    wordListLanguage: 'Language of the words',
     downloadExample: 'Download an example file',
     chooseWordFile: 'Choose a file to import (.csv / .tsv / .txt)',
     pastePlaceholder: 'Or paste here\napple,a round fruit\nresilient,able to recover quickly',
