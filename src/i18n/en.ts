@@ -110,6 +110,7 @@ export const en: Messages = {
     edit: 'Edit',
     cancelEdit: 'Cancel',
     saveEdit: 'Save',
+    listen: 'Listen',
     dictionary: 'Define',
     example: 'Example',
     newExample: 'New example',
