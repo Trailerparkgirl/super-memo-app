@@ -34,7 +34,11 @@ export function HomePage() {
       countMemos(),
       countReviewsSince(startOfDay(now)),
       listDueDates(startOfDay(days[0]), endOfDay(days[6])),
-      reviewDayCounts(),
+      // review_days は後から追加した関数なので、データベースが古くてもホームは表示する（カレンダーだけ出さない）
+      reviewDayCounts().catch((e: unknown) => {
+        console.error(e)
+        return null
+      }),
       listDueTags(now),
     ])
     const forecast = days.map((d) => ({
@@ -43,14 +47,15 @@ export function HomePage() {
     }))
 
     const calendar = calendarWeeks(CALENDAR_WEEKS, now)
-    const streak = currentStreak(activity, now)
+    const streak = activity ? currentStreak(activity, now) : 0
     // 連続記録があって今日まだ復習していなければ、続けるよう促す
-    const streakAtRisk = streak > 0 && !activity.has(dayKey(now))
+    const streakAtRisk = streak > 0 && !activity?.has(dayKey(now))
 
     return { dueCount, total, reviewedToday, forecast, activity, calendar, streak, streakAtRisk, dueTags }
   }, [today])
 
   if (!stats) return null
+  const { activity } = stats
   const max = Math.max(1, ...stats.forecast.map((f) => f.count))
 
   return (
@@ -109,7 +114,7 @@ export function HomePage() {
         </section>
       )}
 
-      {stats.total > 0 && (
+      {stats.total > 0 && activity && (
         <section className="rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">
           <div className="mb-3 flex items-baseline justify-between gap-2">
             <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-300">{t.home.activity}</h2>
@@ -119,7 +124,7 @@ export function HomePage() {
             {stats.calendar.map((week, i) => (
               <div key={i} className="flex flex-1 flex-col gap-[3px]">
                 {week.map((day, j) => {
-                  const count = day ? (stats.activity.get(dayKey(day)) ?? 0) : 0
+                  const count = day ? (activity.get(dayKey(day)) ?? 0) : 0
                   return (
                     <div
                       key={j}
@@ -132,7 +137,7 @@ export function HomePage() {
             ))}
           </div>
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            {stats.streakAtRisk ? t.home.keepStreak : t.home.longestStreak(longestStreak(stats.activity))}
+            {stats.streakAtRisk ? t.home.keepStreak : t.home.longestStreak(longestStreak(activity))}
           </p>
         </section>
       )}
