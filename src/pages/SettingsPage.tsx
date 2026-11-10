@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { LANGUAGES, useI18n } from '../i18n'
 import { supabase } from '../lib/db'
-import { exportBackup, importBackup, InvalidBackupError } from '../lib/memos'
+import { exportBackup, importBackup, importWords, InvalidBackupError } from '../lib/memos'
 import { disableReminder, enableReminder, getReminderHour, NotificationDeniedError, reminderConfigured, reminderSupported } from '../lib/reminder'
 import {
   englishVoices,
@@ -16,6 +16,7 @@ import {
   type VoiceGender,
 } from '../lib/speech'
 import { useSession } from '../lib/useSession'
+import { parseWordList, SAMPLE_WORD_LIST } from '../lib/wordList'
 
 const isStandalone =
   window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
@@ -100,6 +101,90 @@ function ReminderSection() {
         </>
       )}
       {message && <p className="text-rose-600 dark:text-rose-400">{message}</p>}
+    </section>
+  )
+}
+
+function saveFile(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/** 手持ちの単語リスト（ファイルか貼り付け）を「単語」のメモとしてまとめて追加する */
+function WordListSection() {
+  const { t } = useI18n()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+
+  /** 追加できたら true */
+  async function add(source: string) {
+    const items = parseWordList(source)
+    if (items.length === 0) {
+      setMessage(t.settings.noWordsFound)
+      return false
+    }
+    if (!confirm(t.settings.confirmWords(items.length))) return false
+    setBusy(true)
+    setMessage('')
+    try {
+      const { added, skipped } = await importWords(items)
+      setMessage(t.settings.wordsAdded(added, skipped))
+      return true
+    } catch (e) {
+      console.error(e)
+      setMessage(t.settings.importFailed)
+      return false
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className={card}>
+      <h2 className="font-semibold">{t.settings.wordListTitle}</h2>
+      <p className="leading-relaxed text-slate-600 dark:text-slate-300">{t.settings.wordListBody}</p>
+      <pre className="overflow-x-auto rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800/60">{SAMPLE_WORD_LIST}</pre>
+      <p className="text-xs leading-relaxed text-slate-500">{t.settings.wordListFormat}</p>
+      <button onClick={() => saveFile(new Blob([SAMPLE_WORD_LIST], { type: 'text/csv' }), 'word-list-example.csv')} className={button}>
+        {t.settings.downloadExample}
+      </button>
+      <button onClick={() => fileInput.current?.click()} disabled={busy} className={button}>
+        {t.settings.chooseWordFile}
+      </button>
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".csv,.tsv,.txt,text/csv,text/plain,text/tab-separated-values"
+        hidden
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) await add(await file.text())
+        }}
+      />
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={4}
+        placeholder={t.settings.pastePlaceholder}
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base dark:border-slate-700 dark:bg-slate-950"
+      />
+      <button
+        onClick={async () => {
+          if (await add(text)) setText('')
+        }}
+        disabled={busy || !text.trim()}
+        className={`${button} disabled:opacity-40`}
+      >
+        {t.settings.addPasted}
+      </button>
+      {message && <p className="text-indigo-600 dark:text-indigo-400">{message}</p>}
     </section>
   )
 }
@@ -210,12 +295,7 @@ export function SettingsPage() {
       setMessage(t.common.loadFailed)
       return
     }
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `super-memo-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    saveFile(blob, `super-memo-${new Date().toISOString().slice(0, 10)}.json`)
   }
 
   async function upload(file: File) {
@@ -279,6 +359,8 @@ export function SettingsPage() {
         />
         {message && <p className="text-indigo-600 dark:text-indigo-400">{message}</p>}
       </section>
+
+      <WordListSection />
 
       <section className={card}>
         <h2 className="font-semibold">{t.settings.accountTitle}</h2>

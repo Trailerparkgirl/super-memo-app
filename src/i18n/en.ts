@@ -210,6 +210,17 @@ export const en: Messages = {
     imported: (n) => `Imported ${plural(n, 'memo')}`,
     invalidBackup: 'This is not a Super Memo backup file',
     importFailed: 'Import failed',
+    wordListTitle: '📥 Import a word list',
+    wordListBody: 'Add your own word list as “Word” memos all at once. Put one word per line as “word,meaning,tags” (tags are optional).',
+    wordListFormat:
+      'Works with CSV (comma-separated) and tab-separated files exported from Excel, Google Sheets, Quizlet or Anki. Put a meaning that contains commas in "quotes". A header line (like “word”), empty lines and lines starting with # are skipped. Words you already have aren’t added again.',
+    downloadExample: 'Download an example file',
+    chooseWordFile: 'Choose a file to import (.csv / .tsv / .txt)',
+    pastePlaceholder: 'Or paste here\napple,a round fruit\nresilient,able to recover quickly',
+    addPasted: 'Add pasted words',
+    noWordsFound: 'No words found. Check that each line looks like “word,meaning”.',
+    confirmWords: (n) => `Add ${plural(n, 'word')}? (They’ll come up for review from tomorrow.)`,
+    wordsAdded: (added, skipped) => `Added ${plural(added, 'word')}${skipped > 0 ? ` (skipped ${plural(skipped, 'duplicate')})` : ''}`,
     howTitle: 'How reviews work',
     howBody:
       'Your first review comes the day after you write a memo. After that, each review is scheduled based on how well you remembered — right before you’d start forgetting (about 90% recall). The better you know it, the longer the gap: 3 days → 1 week → 1 month…; if you forgot, it shrinks again.',

@@ -14,6 +14,7 @@ import {
 } from './db'
 import { endOfDay, newCard } from './scheduler'
 import { notifyChange } from './useData'
+import type { WordListItem } from './wordList'
 
 export interface MemoInput {
   type: MemoType
@@ -190,6 +191,33 @@ export async function undoReview(memoId: string, logId: number, cardBefore: Card
 
 export function parseTags(text: string): string[] {
   return [...new Set(text.split(/[,、\s]+/).map((t) => t.replace(/^#/, '').trim()).filter(Boolean))]
+}
+
+// ---- 単語リスト ----
+
+/**
+ * 単語リストを「単語」のメモとして追加する。翌日から復習に出る。
+ * すでにある単語（大文字・小文字は区別しない）と、リストの中で重複している単語は追加しない。
+ */
+export async function importWords(items: WordListItem[]): Promise<{ added: number; skipped: number }> {
+  const existing = await selectAll<{ title: string }>((from, to) =>
+    supabase.from('memos').select('title').eq('type', 'word').order('id').range(from, to),
+  )
+  const seen = new Set(existing.map((m) => m.title.trim().toLowerCase()))
+  const now = new Date()
+  const memos: Memo[] = []
+  for (const { word, meaning, tags } of items) {
+    const key = word.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    const card = newCard(now)
+    memos.push({ id: crypto.randomUUID(), type: 'word', title: word, body: meaning, tags, createdAt: now, updatedAt: now, card, due: card.due.getTime() })
+  }
+  for (const chunk of chunks(memos, 500)) {
+    await run(supabase.from('memos').insert(chunk.map(memoToRow)))
+  }
+  notifyChange()
+  return { added: memos.length, skipped: items.length - memos.length }
 }
 
 // ---- バックアップ ----
