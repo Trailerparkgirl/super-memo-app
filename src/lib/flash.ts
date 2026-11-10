@@ -64,6 +64,27 @@ save('super-memo:gemini-key', null)
 export const getDirection = (): FlashDirection => (load(DIRECTION_KEY) === 'back' ? 'back' : 'front')
 export const setDirection = (direction: FlashDirection) => save(DIRECTION_KEY, direction)
 
+// ---- 外部の無料 API ----
+
+const ATTEMPTS = 3
+const TIMEOUT_MS = 8000
+
+/**
+ * 無料の API はときどき失敗したり応答が返ってこなかったりするので、少し待って何回か試す。
+ * 通信エラー・タイムアウト・429・5xx のときだけやり直し、それ以外の応答はそのまま返す。
+ */
+async function fetchWithRetry(url: string): Promise<Response> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) })
+      if (attempt >= ATTEMPTS || (res.status !== 429 && res.status < 500)) return res
+    } catch (e) {
+      if (attempt >= ATTEMPTS) throw e
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500 * attempt))
+  }
+}
+
 // ---- 辞書（Free Dictionary API） ----
 
 export interface Definition {
@@ -87,7 +108,7 @@ interface ApiEntry {
 
 /** 英単語の意味を引く。辞書になければ null。 */
 export async function lookUp(word: string): Promise<DictionaryEntry | null> {
-  const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`)
+  const res = await fetchWithRetry(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`)
   if (res.status === 404) return null
   if (!res.ok) throw new Error(`Dictionary error ${res.status}`)
   const entries = (await res.json()) as ApiEntry[]
@@ -132,7 +153,7 @@ export async function findExamples(word: string): Promise<Example[]> {
   // 熟語（look up など）はその並びのまま探す。1語なら活用形（runs, running）も含めて探す
   const q = /\s/.test(word) ? `"${word}"` : word
   const params = new URLSearchParams({ lang: 'eng', q, sort: 'random', limit: '30', is_unapproved: 'no' })
-  const res = await fetch(`https://api.tatoeba.org/unstable/sentences?${params}`)
+  const res = await fetchWithRetry(`https://api.tatoeba.org/unstable/sentences?${params}`)
   if (!res.ok) throw new Error(`Tatoeba error ${res.status}`)
   const { data } = (await res.json()) as { data: TatoebaSentence[] }
   return data
