@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Rating, type Grade } from 'ts-fsrs'
+import { SpeakButton } from '../components/SpeakButton'
 import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
@@ -269,7 +270,10 @@ export function ReviewPage() {
               {t.review.edit}
             </button>
           </div>
-          <h2 className="text-xl font-bold whitespace-pre-wrap">{memo.title}</h2>
+          <h2 className="text-xl font-bold whitespace-pre-wrap">
+            {memo.title}
+            {isWord && <SpeakButton text={memo.title.trim()} />}
+          </h2>
 
           {revealed ? (
             <>

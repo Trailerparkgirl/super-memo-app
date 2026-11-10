@@ -108,6 +108,7 @@ export const ja = {
     edit: '編集',
     cancelEdit: 'キャンセル',
     saveEdit: '保存',
+    listen: '発音を聞く',
     dictionary: '辞書',
     example: '例文',
     newExample: '別の例文',

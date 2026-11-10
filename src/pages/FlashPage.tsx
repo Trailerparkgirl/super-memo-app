@@ -2,6 +2,7 @@ import { useSetAtom } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Grade } from 'ts-fsrs'
+import { SpeakButton } from '../components/SpeakButton'
 import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
@@ -281,10 +282,16 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
               {t.flash.edit}
             </button>
           </div>
-          <p className="min-h-24 text-center text-2xl font-bold whitespace-pre-wrap">{prompt}</p>
+          <p className="min-h-24 text-center text-2xl font-bold whitespace-pre-wrap">
+            {prompt}
+            {direction === 'front' && <SpeakButton text={memo.title.trim()} />}
+          </p>
           {revealed ? (
             <>
-              <p className="border-t border-slate-200 pt-4 text-center text-lg whitespace-pre-wrap dark:border-slate-700">{answer}</p>
+              <p className="border-t border-slate-200 pt-4 text-center text-lg whitespace-pre-wrap dark:border-slate-700">
+                {answer}
+                {direction === 'back' && <SpeakButton text={memo.title.trim()} />}
+              </p>
               <WordTools key={`${memo.id}-${count}-${memo.title}`} word={memo.title.trim()} />
             </>
           ) : (
