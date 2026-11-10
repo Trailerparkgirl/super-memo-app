@@ -53,6 +53,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Reviewing a memo after its due date now brings the next review earlier by the number of days it was late
   (never sooner than the next day). The review screen shows how many days late it was.
 
+### Fixed
+
+- Home no longer shows only "Couldn’t load your data" (with Try again not helping) when the database is missing the `review_days` function.
+  Home now loads without the activity calendar; run `supabase/schema.sql` again to bring it back.
+
 ### Removed
 
 - "Keep data safe" persistent storage request in Settings, which only applied to browser storage
