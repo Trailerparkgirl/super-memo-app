@@ -1,27 +1,28 @@
+import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n'
+import { prepareRecording, pronounce, speechSupported } from '../lib/speech'
 
-/** 英単語を端末の音声で読み上げる。読み上げに対応していない端末では出さない。 */
+/** 英単語の発音を聞く。辞書に人の録音があればそれを、なければ端末の音声で読み上げる。 */
 export function SpeakButton({ text }: { text: string }) {
   const { t } = useI18n()
-  if (!('speechSynthesis' in window)) return null
+  const [recording, setRecording] = useState<{ text: string; url: string | null }>()
 
-  function speak() {
-    // 続けて押したときは、前の読み上げを止めてから読む
-    speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'en-US'
-    // 端末の言語が日本語でも英語の声で読むように、英語の声があれば選ぶ
-    const voices = speechSynthesis.getVoices()
-    const voice = voices.find((v) => v.lang.replace('_', '-') === 'en-US') ?? voices.find((v) => v.lang.startsWith('en'))
-    if (voice) utterance.voice = voice
-    utterance.rate = 0.9
-    speechSynthesis.speak(utterance)
-  }
+  useEffect(() => {
+    let cancelled = false
+    prepareRecording(text).then((url) => !cancelled && setRecording({ text, url }))
+    return () => {
+      cancelled = true
+    }
+  }, [text])
+
+  // 単語を直した直後は、前の単語の録音を使わない
+  const url = recording?.text === text ? recording.url : null
+  if (!speechSupported && !url) return null
 
   return (
     <button
       type="button"
-      onClick={speak}
+      onClick={() => pronounce(text, url)}
       aria-label={t.flash.listen}
       title={t.flash.listen}
       className="ml-2 inline-grid size-9 place-items-center rounded-full bg-indigo-50 align-middle text-lg dark:bg-indigo-950"

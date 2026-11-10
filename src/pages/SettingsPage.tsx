@@ -3,6 +3,18 @@ import { LANGUAGES, useI18n } from '../i18n'
 import { supabase } from '../lib/db'
 import { exportBackup, importBackup, InvalidBackupError } from '../lib/memos'
 import { disableReminder, enableReminder, getReminderHour, NotificationDeniedError, reminderConfigured, reminderSupported } from '../lib/reminder'
+import {
+  englishVoices,
+  getGender,
+  getUseRecordings,
+  getVoiceUri,
+  setGender,
+  setUseRecordings,
+  setVoiceUri,
+  speak,
+  speechSupported,
+  type VoiceGender,
+} from '../lib/speech'
 import { useSession } from '../lib/useSession'
 
 const isStandalone =
@@ -92,6 +104,97 @@ function ReminderSection() {
   )
 }
 
+/** 🔊 ボタンで読み上げる声を選ぶ（声は端末ごとに違うので、この端末に保存する） */
+function VoiceSection() {
+  const { t } = useI18n()
+  const [voices, setVoices] = useState(englishVoices)
+  const [gender, setGenderState] = useState(getGender)
+  const [voiceUri, setVoiceUriState] = useState(getVoiceUri)
+  const [useRecordings, setUseRecordingsState] = useState(getUseRecordings)
+
+  // 声の一覧は後から読み込まれることがある
+  useEffect(() => {
+    if (!speechSupported) return
+    const update = () => setVoices(englishVoices())
+    speechSynthesis.addEventListener('voiceschanged', update)
+    return () => speechSynthesis.removeEventListener('voiceschanged', update)
+  }, [])
+
+  const choices = voices.filter((v) => !gender || v.gender === gender)
+
+  function chooseGender(next: VoiceGender | null) {
+    setGenderState(next)
+    setGender(next)
+    // 性別を変えたら、その中で一番よい声に戻す
+    setVoiceUriState(null)
+    setVoiceUri(null)
+  }
+
+  function chooseVoice(uri: string | null) {
+    setVoiceUriState(uri)
+    setVoiceUri(uri)
+  }
+
+  function chooseRecordings(on: boolean) {
+    setUseRecordingsState(on)
+    setUseRecordings(on)
+  }
+
+  return (
+    <section className={card}>
+      <h2 className="font-semibold">{t.settings.voiceTitle}</h2>
+      <p className="leading-relaxed text-slate-600 dark:text-slate-300">{t.settings.voiceBody}</p>
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={useRecordings} onChange={(e) => chooseRecordings(e.target.checked)} className="size-4 accent-indigo-600" />
+        {t.settings.useRecordings}
+      </label>
+      {!speechSupported ? (
+        <p className="text-amber-600 dark:text-amber-400">{t.settings.voiceUnsupported}</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 rounded-xl bg-slate-200 p-1 dark:bg-slate-800">
+            {(
+              [
+                [null, t.settings.voiceAuto],
+                ['female', t.settings.female],
+                ['male', t.settings.male],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={label}
+                onClick={() => chooseGender(value)}
+                className={`rounded-lg py-2 ${gender === value ? 'bg-white font-semibold shadow-sm dark:bg-slate-950' : 'text-slate-500'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {choices.length > 0 ? (
+            <select
+              value={choices.some((v) => v.voice.voiceURI === voiceUri) ? (voiceUri ?? '') : ''}
+              onChange={(e) => chooseVoice(e.target.value || null)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+            >
+              <option value="">{t.settings.voiceBest}</option>
+              {choices.map(({ voice }) => (
+                <option key={voice.voiceURI} value={voice.voiceURI}>
+                  {`${voice.name} (${voice.lang})`}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-amber-600 dark:text-amber-400">{t.settings.noVoiceForGender}</p>
+          )}
+          <button onClick={() => speak(t.settings.voiceSample)} className={button}>
+            {t.settings.voiceTest}
+          </button>
+          <p className="text-xs leading-relaxed text-slate-500">{t.settings.voiceTip}</p>
+        </>
+      )}
+    </section>
+  )
+}
+
 export function SettingsPage() {
   const { t, lang, setLang } = useI18n()
   const session = useSession()
@@ -151,6 +254,8 @@ export function SettingsPage() {
       </section>
 
       <ReminderSection />
+
+      <VoiceSection />
 
       <section className={card}>
         <h2 className="font-semibold">{t.settings.backupTitle}</h2>
