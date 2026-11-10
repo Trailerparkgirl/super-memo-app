@@ -55,6 +55,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Fixed
 
+- Flash card practice is now full screen like the review: the bottom tab bar is hidden until you tap Quit
 - Home no longer shows only "Couldn’t load your data" (with Try again not helping) when the database is missing the `review_days` function.
   Home now loads without the activity calendar; run `supabase/schema.sql` again to bring it back.
 - The Define and Example buttons sometimes said they couldn’t load even with a good connection.

@@ -2,6 +2,7 @@ import { useAtomValue } from 'jotai'
 import type { MouseEvent } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useI18n } from '../i18n'
+import { focusModeAtom } from '../lib/focus'
 import { unsavedChangesAtom } from '../lib/unsaved'
 
 const icons = {
@@ -56,8 +57,9 @@ function Tab({ to, icon, label, badge }: { to: string; icon: string; label: stri
 export function TabBar({ dueCount }: { dueCount: number }) {
   const { t } = useI18n()
   const confirmLeave = useConfirmLeave()
-  // 復習中は集中できるようタブバーを隠す
-  if (useLocation().pathname === '/review') return null
+  const focusMode = useAtomValue(focusModeAtom)
+  // 復習中とフラッシュカードの練習中は集中できるようタブバーを隠す
+  if (useLocation().pathname === '/review' || focusMode) return null
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-slate-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
