@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useSetAtom } from 'jotai'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Grade } from 'ts-fsrs'
 import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
 import { flashCards, getDirection, pickNext, setDirection as saveDirection, type FlashDirection } from '../lib/flash'
+import { focusModeAtom } from '../lib/focus'
 import { deleteMemo, listMemos, recordReview, undoReview, updateMemo } from '../lib/memos'
 import { GRADES, preview } from '../lib/scheduler'
 import { useData } from '../lib/useData'
@@ -112,6 +114,13 @@ function FlashSession({ cards: initialCards, direction, onQuit }: { cards: Memo[
   const [last, setLast] = useState<{ memo: Memo; logId: number; grades: Map<string, Grade> } | null>(null)
 
   const outcomes = useMemo(() => (revealed ? preview(memo.card) : null), [memo, revealed])
+
+  // 練習中は復習と同じく全画面にする（タブバーを隠す）
+  const setFocusMode = useSetAtom(focusModeAtom)
+  useEffect(() => {
+    setFocusMode(true)
+    return () => setFocusMode(false)
+  }, [setFocusMode])
 
   async function saveEdit() {
     if (!draft || saving) return
