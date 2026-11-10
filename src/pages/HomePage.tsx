@@ -1,6 +1,9 @@
+import { useAtomValue } from 'jotai'
 import { Link } from 'react-router-dom'
+import { StudyLangPicker } from '../components/StudyLangPicker'
 import { useI18n } from '../i18n'
 import { calendarWeeks, currentStreak, dayKey, longestStreak } from '../lib/activity'
+import { studyFilterAtom } from '../lib/languages'
 import { countDueMemos, countMemos, countReviewsSince, listDueDates, listDueTags, reviewDayCounts } from '../lib/memos'
 import { endOfDay, startOfDay } from '../lib/scheduler'
 import { useData } from '../lib/useData'
@@ -20,6 +23,8 @@ function shade(count: number): string {
 export function HomePage() {
   const { t } = useI18n()
   const today = useToday()
+  // 件数と予定は選んだ言語のメモだけ。復習した日（連続記録）はすべての言語をまとめて数える
+  const filter = useAtomValue(studyFilterAtom)
 
   const stats = useData(async () => {
     const now = new Date()
@@ -30,16 +35,16 @@ export function HomePage() {
       return d
     })
     const [dueCount, total, reviewedToday, upcoming, activity, dueTags] = await Promise.all([
-      countDueMemos(now),
-      countMemos(),
+      countDueMemos(now, filter),
+      countMemos(filter),
       countReviewsSince(startOfDay(now)),
-      listDueDates(startOfDay(days[0]), endOfDay(days[6])),
+      listDueDates(startOfDay(days[0]), endOfDay(days[6]), filter),
       // review_days は後から追加した関数なので、データベースが古くてもホームは表示する（カレンダーだけ出さない）
       reviewDayCounts().catch((e: unknown) => {
         console.error(e)
         return null
       }),
-      listDueTags(now),
+      listDueTags(now, filter),
     ])
     const forecast = days.map((d) => ({
       date: d,
@@ -52,20 +57,28 @@ export function HomePage() {
     const streakAtRisk = streak > 0 && !activity?.has(dayKey(now))
 
     return { dueCount, total, reviewedToday, forecast, activity, calendar, streak, streakAtRisk, dueTags }
-  }, [today])
+  }, [today, filter])
 
-  if (!stats) return null
+  const header = (
+    <header className="space-y-3">
+      <div>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          {new Date(today).toLocaleDateString(t.locale, { month: 'long', day: 'numeric', weekday: 'short' })}
+        </p>
+        <h1 className="text-2xl font-bold">{t.appName}</h1>
+      </div>
+      <StudyLangPicker />
+    </header>
+  )
+
+  // 言語を切り替えて読み込んでいる間も、切り替えのボタンは出しておく
+  if (!stats) return <div className="space-y-5">{header}</div>
   const { activity } = stats
   const max = Math.max(1, ...stats.forecast.map((f) => f.count))
 
   return (
     <div className="space-y-5">
-      <header>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {new Date(today).toLocaleDateString(t.locale, { month: 'long', day: 'numeric', weekday: 'short' })}
-        </p>
-        <h1 className="text-2xl font-bold">{t.appName}</h1>
-      </header>
+      {header}
 
       {stats.total === 0 ? (
         <section className="space-y-3 rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">

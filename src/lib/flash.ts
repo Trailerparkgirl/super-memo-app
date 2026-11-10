@@ -75,6 +75,8 @@ export interface Definition {
   partOfSpeech: string
   definition: string
   example?: string
+  /** 例の英訳（Wiktionary） */
+  translation?: string
 }
 
 export interface DictionaryEntry {
@@ -134,11 +136,125 @@ export async function findRecording(word: string): Promise<string | null> {
 
 export const googleDefineUrl = (word: string) => `https://www.google.com/search?q=${encodeURIComponent(`define ${word}`)}`
 
+// ---- 英語以外の辞書（英語版 Wiktionary：意味は英語。API キー不要・無料） ----
+
+// Wiktionary の見出しに使われている言語名
+const WIKTIONARY_NAMES: Record<string, string> = { de: 'German', ja: 'Japanese' }
+
+interface WiktionaryUsage {
+  partOfSpeech: string
+  definitions: { definition: string; parsedExamples?: { example: string; translation?: string }[] }[]
+}
+
+/** HTML の文字だけを取り出す（ふりがなは「飯(はん)」のように残る）。ところどころに入っている CSS は除く */
+function plainText(html: string): string {
+  const { body } = new DOMParser().parseFromString(html, 'text/html')
+  body.querySelectorAll('style').forEach((style) => style.remove())
+  return body.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+}
+
+/** ドイツ語の名詞は大文字で始まるので、書いたままで見つからなければ大文字・小文字を変えて引く */
+function titleCandidates(word: string): string[] {
+  const first = word.charAt(0)
+  return [...new Set([word, first.toUpperCase() + word.slice(1), first.toLowerCase() + word.slice(1)])]
+}
+
+// 同じ単語は1回だけ取ってくる（失敗したときは次にもう一度試す）
+function cached<T>(cache: Map<string, Promise<T>>, key: string, load: () => Promise<T>): Promise<T> {
+  let value = cache.get(key)
+  if (!value) {
+    value = load()
+    value.catch(() => cache.delete(key))
+    cache.set(key, value)
+  }
+  return value
+}
+
+const definitionsCache = new Map<string, Promise<Record<string, WiktionaryUsage[]> | null>>()
+
+function fetchDefinitions(title: string) {
+  return cached(definitionsCache, title, async () => {
+    const res = await fetchWithRetry(`https://en.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(title)}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`Wiktionary error ${res.status}`)
+    return (await res.json()) as Record<string, WiktionaryUsage[]>
+  })
+}
+
+const sectionCache = new Map<string, Promise<string | null>>()
+
+/** 見出しの、その言語の部分の wikitext（発音記号と録音のファイル名が書いてある）。なければ null */
+function fetchSection(title: string, lang: string) {
+  return cached(sectionCache, `${lang}:${title}`, async () => {
+    const params = new URLSearchParams({ action: 'parse', page: title, prop: 'wikitext', format: 'json', formatversion: '2', origin: '*' })
+    const res = await fetchWithRetry(`https://en.wiktionary.org/w/api.php?${params}`)
+    if (!res.ok) throw new Error(`Wiktionary error ${res.status}`)
+    const wikitext = ((await res.json()) as { parse?: { wikitext: string } }).parse?.wikitext
+    return wikitext?.split(new RegExp(`^==${WIKTIONARY_NAMES[lang]}==\\s*$`, 'm'))[1]?.split(/^==[^=]/m)[0] ?? null
+  })
+}
+
+/** Wiktionary で意味を引く。辞書になければ null。 */
+export async function lookUpWiktionary(word: string, lang: string): Promise<DictionaryEntry | null> {
+  for (const title of titleCandidates(word)) {
+    // 品詞ごとに上位2つまで、全体で6つまで
+    const definitions = ((await fetchDefinitions(title))?.[lang] ?? [])
+      .flatMap((usage) =>
+        usage.definitions
+          .map((d) => ({ d, definition: plainText(d.definition) }))
+          .filter(({ definition }) => definition)
+          .slice(0, 2)
+          .map(({ d, definition }) => {
+            const example = d.parsedExamples?.[0]
+            return {
+              partOfSpeech: usage.partOfSpeech,
+              definition,
+              example: example && plainText(example.example),
+              translation: example?.translation && plainText(example.translation),
+            }
+          }),
+      )
+      .slice(0, 6)
+    if (definitions.length === 0) continue
+    // 発音記号は取れなくても意味は出す
+    const section = await fetchSection(title, lang).catch(() => null)
+    const phonetic = section?.match(new RegExp(`\\{\\{IPA\\|${lang}\\|([^|}]+)`))?.[1]
+    return { word: title, phonetic, definitions }
+  }
+  return null
+}
+
+/** Wiktionary にある、人が読み上げた発音の録音。なければ null。 */
+export async function findWiktionaryRecording(word: string, lang: string): Promise<string | null> {
+  for (const title of titleCandidates(word)) {
+    const file = (await fetchSection(title, lang))?.match(new RegExp(`\\{\\{audio\\|${lang}\\|([^|}]+)`))?.[1]
+    if (!file) continue
+    const params = new URLSearchParams({
+      action: 'query',
+      titles: `File:${file.trim()}`,
+      prop: 'videoinfo',
+      viprop: 'url|derivatives',
+      format: 'json',
+      formatversion: '2',
+      origin: '*',
+    })
+    const res = await fetchWithRetry(`https://commons.wikimedia.org/w/api.php?${params}`)
+    if (!res.ok) throw new Error(`Wikimedia Commons error ${res.status}`)
+    const { query } = (await res.json()) as { query?: { pages: { videoinfo?: { url: string; derivatives?: { src: string }[] }[] }[] } }
+    const info = query?.pages[0]?.videoinfo?.[0]
+    // 録音は .ogg が多く、iPhone では再生できないことがあるので、変換済みの mp3 を優先する
+    return info?.derivatives?.find((d) => d.src.endsWith('.mp3'))?.src ?? info?.url ?? null
+  }
+  return null
+}
+
 // ---- 例文（Tatoeba：人が書いた例文の公開データベース。API キー不要・無料） ----
 
 export interface Example {
   id: number
   text: string
+  /** 訳（あれば） */
+  translation: string | null
   /** 投稿した人とライセンス（表示が必要） */
   owner: string | null
   license: string | null
@@ -150,22 +266,37 @@ interface TatoebaSentence {
   owner: string | null
   license: string | null
   is_unapproved: boolean
+  translations?: { text: string; lang: string; is_direct: boolean }[]
 }
 
 // 長すぎる文はカードで読みにくいので出さない
 const MAX_EXAMPLE_LENGTH = 160
 
-/** 単語を使った英語の例文をランダムにいくつか探す。見つからなければ空の配列。 */
-export async function findExamples(word: string): Promise<Example[]> {
-  // 熟語（look up など）はその並びのまま探す。1語なら活用形（runs, running）も含めて探す
-  const q = /\s/.test(word) ? `"${word}"` : word
-  const params = new URLSearchParams({ lang: 'eng', q, sort: 'random', limit: '30', is_unapproved: 'no' })
+async function searchSentences(params: URLSearchParams): Promise<TatoebaSentence[]> {
   const res = await fetchWithRetry(`https://api.tatoeba.org/unstable/sentences?${params}`)
   if (!res.ok) throw new Error(`Tatoeba error ${res.status}`)
-  const { data } = (await res.json()) as { data: TatoebaSentence[] }
+  return ((await res.json()) as { data: TatoebaSentence[] }).data
+}
+
+/**
+ * 単語を使った例文（lang は Tatoeba の言語コード：eng / deu / jpn）をランダムにいくつか探す。見つからなければ空の配列。
+ * translateTo を指定すると、その言語の訳がある文を優先して、訳も付ける。
+ */
+export async function findExamples(word: string, lang: string, translateTo: string | null): Promise<Example[]> {
+  // 熟語（look up など）はその並びのまま探す。1語なら活用形（runs, running）も含めて探す
+  const q = /\s/.test(word) ? `"${word}"` : word
+  const params = new URLSearchParams({ lang, q, sort: 'random', limit: '30', is_unapproved: 'no' })
+  let data: TatoebaSentence[] = []
+  if (translateTo) data = await searchSentences(new URLSearchParams([...params, ['trans:lang', translateTo]]))
+  // 訳のある文がなければ、訳なしで探す
+  if (data.length === 0) data = await searchSentences(params)
   return data
     .filter((s) => !s.is_unapproved && s.text.length <= MAX_EXAMPLE_LENGTH)
-    .map(({ id, text, owner, license }) => ({ id, text, owner, license }))
+    .map(({ id, text, owner, license, translations = [] }) => {
+      const candidates = translations.filter((t) => t.lang === translateTo)
+      const translation = (candidates.find((t) => t.is_direct) ?? candidates[0])?.text ?? null
+      return { id, text, translation, owner, license }
+    })
 }
 
 export const tatoebaUrl = (id: number) => `https://tatoeba.org/sentences/show/${id}`

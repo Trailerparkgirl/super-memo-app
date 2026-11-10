@@ -1,10 +1,12 @@
+import { useAtomValue } from 'jotai'
 import { useEffect, useRef, useState } from 'react'
+import { LangTabs } from '../components/StudyLangPicker'
 import { LANGUAGES, useI18n } from '../i18n'
 import { supabase } from '../lib/db'
+import { defaultLang, PROFILES, STUDY_LANGS, studyFilterAtom } from '../lib/languages'
 import { exportBackup, importBackup, importWords, InvalidBackupError } from '../lib/memos'
 import { disableReminder, enableReminder, getReminderHour, NotificationDeniedError, reminderConfigured, reminderSupported } from '../lib/reminder'
 import {
-  englishVoices,
   getGender,
   getUseRecordings,
   getVoiceUri,
@@ -13,6 +15,7 @@ import {
   setVoiceUri,
   speak,
   speechSupported,
+  voicesFor,
   type VoiceGender,
 } from '../lib/speech'
 import { useSession } from '../lib/useSession'
@@ -118,6 +121,7 @@ function saveFile(blob: Blob, name: string) {
 function WordListSection() {
   const { t } = useI18n()
   const fileInput = useRef<HTMLInputElement>(null)
+  const [lang, setLang] = useState(defaultLang(useAtomValue(studyFilterAtom)))
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -133,7 +137,7 @@ function WordListSection() {
     setBusy(true)
     setMessage('')
     try {
-      const { added, skipped } = await importWords(items)
+      const { added, skipped } = await importWords(items, lang)
       setMessage(t.settings.wordsAdded(added, skipped))
       return true
     } catch (e) {
@@ -151,6 +155,10 @@ function WordListSection() {
       <p className="leading-relaxed text-slate-600 dark:text-slate-300">{t.settings.wordListBody}</p>
       <pre className="overflow-x-auto rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800/60">{SAMPLE_WORD_LIST}</pre>
       <p className="text-xs leading-relaxed text-slate-500">{t.settings.wordListFormat}</p>
+      <div className="space-y-1">
+        <span className="text-slate-600 dark:text-slate-300">{t.settings.wordListLanguage}</span>
+        <LangTabs value={lang} onChange={setLang} />
+      </div>
       <button onClick={() => saveFile(new Blob([SAMPLE_WORD_LIST], { type: 'text/csv' }), 'word-list-example.csv')} className={button}>
         {t.settings.downloadExample}
       </button>
@@ -189,18 +197,20 @@ function WordListSection() {
   )
 }
 
-/** 🔊 ボタンで読み上げる声を選ぶ（声は端末ごとに違うので、この端末に保存する） */
+/** 🔊 ボタンで読み上げる声を言語ごとに選ぶ（声は端末ごとに違うので、この端末に保存する） */
 function VoiceSection() {
   const { t } = useI18n()
-  const [voices, setVoices] = useState(englishVoices)
+  const [lang, setLang] = useState(defaultLang(useAtomValue(studyFilterAtom)))
+  // 声の一覧と選んだ声は毎回読み直す。声の一覧が後から読み込まれたときや、声を選んだときに描き直す
+  const [, refresh] = useState(0)
+  const voices = voicesFor(lang)
+  const voiceUri = getVoiceUri(lang)
   const [gender, setGenderState] = useState(getGender)
-  const [voiceUri, setVoiceUriState] = useState(getVoiceUri)
   const [useRecordings, setUseRecordingsState] = useState(getUseRecordings)
 
-  // 声の一覧は後から読み込まれることがある
   useEffect(() => {
     if (!speechSupported) return
-    const update = () => setVoices(englishVoices())
+    const update = () => refresh((n) => n + 1)
     speechSynthesis.addEventListener('voiceschanged', update)
     return () => speechSynthesis.removeEventListener('voiceschanged', update)
   }, [])
@@ -210,14 +220,13 @@ function VoiceSection() {
   function chooseGender(next: VoiceGender | null) {
     setGenderState(next)
     setGender(next)
-    // 性別を変えたら、その中で一番よい声に戻す
-    setVoiceUriState(null)
-    setVoiceUri(null)
+    // 性別を変えたら、どの言語もその中で一番よい声に戻す
+    for (const code of STUDY_LANGS) setVoiceUri(code, null)
   }
 
   function chooseVoice(uri: string | null) {
-    setVoiceUriState(uri)
-    setVoiceUri(uri)
+    setVoiceUri(lang, uri)
+    refresh((n) => n + 1)
   }
 
   function chooseRecordings(on: boolean) {
@@ -237,6 +246,7 @@ function VoiceSection() {
         <p className="text-amber-600 dark:text-amber-400">{t.settings.voiceUnsupported}</p>
       ) : (
         <>
+          <LangTabs value={lang} onChange={setLang} />
           <div className="grid grid-cols-3 rounded-xl bg-slate-200 p-1 dark:bg-slate-800">
             {(
               [
@@ -268,9 +278,9 @@ function VoiceSection() {
               ))}
             </select>
           ) : (
-            <p className="text-amber-600 dark:text-amber-400">{t.settings.noVoiceForGender}</p>
+            <p className="text-amber-600 dark:text-amber-400">{voices.length > 0 ? t.settings.noVoiceForGender : t.settings.noVoiceForLanguage}</p>
           )}
-          <button onClick={() => speak(t.settings.voiceSample)} className={button}>
+          <button onClick={() => speak(PROFILES[lang].voiceSample, lang)} className={button}>
             {t.settings.voiceTest}
           </button>
           <p className="text-xs leading-relaxed text-slate-500">{t.settings.voiceTip}</p>

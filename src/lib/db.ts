@@ -12,9 +12,13 @@ export const supabase = createClient(url, key)
 /** note: 自由メモ / qa: 問題と答え / word: 単語（フラッシュカード用） */
 export type MemoType = 'note' | 'qa' | 'word'
 
+/** 勉強している言語。en: 英語 / de: ドイツ語 / ja: 日本語 */
+export type StudyLang = 'en' | 'de' | 'ja'
+
 export interface Memo {
   id: string
   type: MemoType
+  lang: StudyLang
   /** 自由メモ: タイトル / 問題形式: 問題 / 単語: 単語 */
   title: string
   /** 自由メモ: 本文 / 問題形式: 答え / 単語: 意味 */
@@ -45,6 +49,7 @@ export interface ReviewLog {
 export interface MemoRow {
   id: string
   type: MemoType
+  lang: StudyLang
   title: string
   body: string
   tags: string[]
@@ -81,6 +86,8 @@ export function memoFromRow(row: MemoRow): Memo {
   return {
     id: row.id,
     type: row.type,
+    // 言語の列を足す前のデータベースでも読めるようにする
+    lang: row.lang ?? 'en',
     title: row.title,
     body: row.body,
     tags: row.tags,
@@ -95,6 +102,7 @@ export function memoToRow(memo: Memo): MemoRow {
   return {
     id: memo.id,
     type: memo.type,
+    lang: memo.lang,
     title: memo.title,
     body: memo.body,
     tags: memo.tags,

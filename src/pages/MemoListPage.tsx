@@ -1,6 +1,9 @@
+import { useAtomValue } from 'jotai'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { StudyLangPicker } from '../components/StudyLangPicker'
 import { useI18n } from '../i18n'
+import { PROFILES, studyFilterAtom } from '../lib/languages'
 import { listMemos } from '../lib/memos'
 import { daysUntil } from '../lib/scheduler'
 import { useData } from '../lib/useData'
@@ -11,10 +14,11 @@ export function MemoListPage() {
   useToday() // 日付が変わったら「今日」「明日」の表示を更新する
   const [search, setSearch] = useState('')
   const allMemos = useData(listMemos, [])
+  const filter = useAtomValue(studyFilterAtom)
   // メモと単語は分けて表示する（?type=word で単語）
   const [params, setParams] = useSearchParams()
   const showWords = params.get('type') === 'word'
-  const memos = allMemos?.filter((m) => (m.type === 'word') === showWords)
+  const memos = allMemos?.filter((m) => (m.type === 'word') === showWords && (filter === 'all' || m.lang === filter))
 
   const keyword = search.trim().toLowerCase()
   const filtered = memos?.filter(
@@ -24,6 +28,7 @@ export function MemoListPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t.list.title}</h1>
+      <StudyLangPicker />
       <div className="grid grid-cols-2 rounded-xl bg-slate-200 p-1 text-sm dark:bg-slate-800">
         {(
           [
@@ -77,7 +82,10 @@ export function MemoListPage() {
                   </p>
                 )}
                 <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-slate-500">
-                  <span>{t.memoType[m.type]}</span>
+                  <span>
+                    {filter === 'all' && `${PROFILES[m.lang].flag} `}
+                    {t.memoType[m.type]}
+                  </span>
                   {m.tags.map((tag) => (
                     <span key={tag}>#{tag}</span>
                   ))}

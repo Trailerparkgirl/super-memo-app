@@ -33,6 +33,8 @@ export const ja = {
   tabs: { review: '復習', memos: 'メモ', newMemo: '新しいメモ', flash: 'カード', settings: '設定' },
   memoType: { note: 'メモ', qa: '問題', word: '単語' },
   grades: { again: '忘れてた', hard: 'うろ覚え', good: '覚えてた', easy: '簡単' },
+  /** 勉強している言語 */
+  studyLang: { all: 'すべて', en: '英語', de: 'ドイツ語', ja: '日本語' },
 
   home: {
     welcomeTitle: 'ようこそ！',
@@ -143,7 +145,8 @@ export const ja = {
     typeWord: '単語',
     word: '単語',
     meaning: '意味',
-    wordPlaceholder: '例：scrutiny',
+    language: '言語',
+    wordPlaceholder: (sample: string) => `例：${sample}`,
     meaningPlaceholder: '例：綿密な調査、精査',
     question: '問題',
     title: 'タイトル',
@@ -192,11 +195,11 @@ export const ja = {
     female: '女性',
     male: '男性',
     voiceBest: 'いちばん自然な声（自動）',
-    noVoiceForGender: 'この端末にはこの種類の英語の声がないので、いちばん自然な声を使います。',
+    noVoiceForGender: 'この端末にはこの種類の声がないので、いちばん自然な声を使います。',
+    noVoiceForLanguage: 'この端末にはこの言語の声がありません。下の方法で声を追加できます。',
     voiceTest: '試しに聞く',
-    voiceSample: 'Hello! This is how your words will sound.',
     voiceTip:
-      'まだ機械的に聞こえるときは、iPhone の「設定」→「アクセシビリティ」→「読み上げコンテンツ」→「声」→「英語」で「拡張」や「プレミアム」の声をダウンロードして、ここで選んでください。',
+      'まだ機械的に聞こえるときや声がないときは、iPhone の「設定」→「アクセシビリティ」→「読み上げコンテンツ」→「声」→ 言語を選んで「拡張」や「プレミアム」の声をダウンロードして、ここで選んでください。',
     voiceUnsupported: 'このブラウザは読み上げに対応していません。辞書に録音がある単語は聞けます。',
     accountTitle: 'アカウント',
     loggedInAs: (email: string) => `${email} でログイン中`,
@@ -212,6 +215,7 @@ export const ja = {
     wordListBody: '手持ちの単語リストを「単語」のメモとしてまとめて追加できます。1行に1語、「単語,意味,タグ」の順で書いてください（タグはなくてもかまいません）。',
     wordListFormat:
       'CSV（カンマ区切り）と、Excel・Google スプレッドシート・Quizlet・Anki から書き出したタブ区切りのファイルに対応しています。意味にカンマを含むときは "..." で囲んでください。1行目の見出し（word など）、空の行、# で始まる行は読み飛ばします。すでにある単語は追加しません。',
+    wordListLanguage: '追加する単語の言語',
     downloadExample: '見本のファイルをダウンロード',
     chooseWordFile: 'ファイルを選んで読み込む（.csv / .tsv / .txt）',
     pastePlaceholder: 'または、ここに貼り付け\napple,りんご\nresilient,回復力のある',

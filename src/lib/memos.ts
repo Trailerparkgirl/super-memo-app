@@ -11,13 +11,16 @@ import {
   type MemoType,
   type ReviewLog,
   type ReviewLogRow,
+  type StudyLang,
 } from './db'
+import type { StudyFilter } from './languages'
 import { endOfDay, newCard } from './scheduler'
 import { notifyChange } from './useData'
 import type { WordListItem } from './wordList'
 
 export interface MemoInput {
   type: MemoType
+  lang: StudyLang
   title: string
   body: string
   tags: string[]
@@ -54,6 +57,12 @@ function chunks<T>(items: T[], size: number): T[][] {
   return Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size))
 }
 
+/** 'all' でなければ、その言語のメモだけにする */
+function inLang<Q>(query: Q, lang: StudyFilter): Q {
+  // Supabase の型は込み入っていて、型の条件で書くと計算が終わらないので、eq を持つものとして扱う
+  return lang === 'all' ? query : (query as { eq(column: string, value: string): Q }).eq('lang', lang)
+}
+
 // ---- 読み込み ----
 
 export async function getMemo(id: string): Promise<Memo | null> {
@@ -70,30 +79,30 @@ export async function listMemos(): Promise<Memo[]> {
 }
 
 /** 今日までに復習するメモ（予定日の早い順）。tag を指定すると、そのタグのメモだけ */
-export async function listDueMemos(now = new Date(), tag?: string): Promise<Memo[]> {
+export async function listDueMemos(now = new Date(), tag?: string, lang: StudyFilter = 'all'): Promise<Memo[]> {
   const rows = await selectAll<MemoRow>((from, to) => {
-    const query = supabase.from('memos').select().lte('due', endOfDay(now).toISOString())
+    const query = inLang(supabase.from('memos').select().lte('due', endOfDay(now).toISOString()), lang)
     return (tag ? query.contains('tags', [tag]) : query).order('due').order('id').range(from, to)
   })
   return rows.map(memoFromRow)
 }
 
 /** 今日までに復習するメモのタグと、タグごとの件数（タグ名の順） */
-export async function listDueTags(now = new Date()): Promise<[string, number][]> {
+export async function listDueTags(now = new Date(), lang: StudyFilter = 'all'): Promise<[string, number][]> {
   const rows = await selectAll<{ tags: string[] }>((from, to) =>
-    supabase.from('memos').select('tags').lte('due', endOfDay(now).toISOString()).order('id').range(from, to),
+    inLang(supabase.from('memos').select('tags').lte('due', endOfDay(now).toISOString()), lang).order('id').range(from, to),
   )
   const counts = new Map<string, number>()
   for (const tag of rows.flatMap((r) => r.tags)) counts.set(tag, (counts.get(tag) ?? 0) + 1)
   return [...counts].sort(([a], [b]) => a.localeCompare(b))
 }
 
-export function countDueMemos(now = new Date()): Promise<number> {
-  return runCount(supabase.from('memos').select('*', { count: 'exact', head: true }).lte('due', endOfDay(now).toISOString()))
+export function countDueMemos(now = new Date(), lang: StudyFilter = 'all'): Promise<number> {
+  return runCount(inLang(supabase.from('memos').select('*', { count: 'exact', head: true }).lte('due', endOfDay(now).toISOString()), lang))
 }
 
-export function countMemos(): Promise<number> {
-  return runCount(supabase.from('memos').select('*', { count: 'exact', head: true }))
+export function countMemos(lang: StudyFilter = 'all'): Promise<number> {
+  return runCount(inLang(supabase.from('memos').select('*', { count: 'exact', head: true }), lang))
 }
 
 export function countReviewsSince(since: Date): Promise<number> {
@@ -101,13 +110,9 @@ export function countReviewsSince(since: Date): Promise<number> {
 }
 
 /** 期間内に復習予定があるメモの予定日時（タイムスタンプ） */
-export async function listDueDates(from: Date, to: Date): Promise<number[]> {
+export async function listDueDates(from: Date, to: Date, lang: StudyFilter = 'all'): Promise<number[]> {
   const rows = await selectAll<{ due: string }>((start, end) =>
-    supabase
-      .from('memos')
-      .select('due')
-      .gte('due', from.toISOString())
-      .lte('due', to.toISOString())
+    inLang(supabase.from('memos').select('due').gte('due', from.toISOString()).lte('due', to.toISOString()), lang)
       .order('due')
       .order('id')
       .range(start, end),
@@ -196,12 +201,12 @@ export function parseTags(text: string): string[] {
 // ---- 単語リスト ----
 
 /**
- * 単語リストを「単語」のメモとして追加する。翌日から復習に出る。
- * すでにある単語（大文字・小文字は区別しない）と、リストの中で重複している単語は追加しない。
+ * 単語リストを lang の「単語」のメモとして追加する。翌日から復習に出る。
+ * その言語にすでにある単語（大文字・小文字は区別しない）と、リストの中で重複している単語は追加しない。
  */
-export async function importWords(items: WordListItem[]): Promise<{ added: number; skipped: number }> {
+export async function importWords(items: WordListItem[], lang: StudyLang): Promise<{ added: number; skipped: number }> {
   const existing = await selectAll<{ title: string }>((from, to) =>
-    supabase.from('memos').select('title').eq('type', 'word').order('id').range(from, to),
+    supabase.from('memos').select('title').eq('type', 'word').eq('lang', lang).order('id').range(from, to),
   )
   const seen = new Set(existing.map((m) => m.title.trim().toLowerCase()))
   const now = new Date()
@@ -211,7 +216,7 @@ export async function importWords(items: WordListItem[]): Promise<{ added: numbe
     if (seen.has(key)) continue
     seen.add(key)
     const card = newCard(now)
-    memos.push({ id: crypto.randomUUID(), type: 'word', title: word, body: meaning, tags, createdAt: now, updatedAt: now, card, due: card.due.getTime() })
+    memos.push({ id: crypto.randomUUID(), type: 'word', lang, title: word, body: meaning, tags, createdAt: now, updatedAt: now, card, due: card.due.getTime() })
   }
   for (const chunk of chunks(memos, 500)) {
     await run(supabase.from('memos').insert(chunk.map(memoToRow)))
@@ -256,7 +261,8 @@ export async function importBackup(file: File): Promise<number> {
   }
   const memos: Memo[] = data.memos.map((m) => {
     const card = reviveCard(m.card)
-    return { ...m, createdAt: new Date(m.createdAt), updatedAt: new Date(m.updatedAt), card, due: card.due.getTime() }
+    // 言語を足す前のバックアップは英語のメモとして読む
+    return { ...m, lang: m.lang ?? 'en', createdAt: new Date(m.createdAt), updatedAt: new Date(m.updatedAt), card, due: card.due.getTime() }
   })
   const ids = new Set(memos.map((m) => m.id))
   const logs = (data.logs ?? [])

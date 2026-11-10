@@ -1,3 +1,4 @@
+import { useAtomValue } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Rating, type Grade } from 'ts-fsrs'
@@ -5,6 +6,7 @@ import { SpeakButton } from '../components/SpeakButton'
 import { WordTools } from '../components/WordTools'
 import { useI18n } from '../i18n'
 import { type Memo } from '../lib/db'
+import { PROFILES, studyFilterAtom } from '../lib/languages'
 import { deleteMemo, listDueMemos, recordReview, undoReview, updateMemo } from '../lib/memos'
 import { GRADES, overdueDays, preview } from '../lib/scheduler'
 
@@ -17,6 +19,8 @@ export function ReviewPage() {
   const navigate = useNavigate()
   // ホームでタグを選んだときは ?tag=英語 のように、そのタグのメモだけ復習する
   const tag = useSearchParams()[0].get('tag') ?? undefined
+  // ホームで選んでいる言語のメモだけ
+  const filter = useAtomValue(studyFilterAtom)
   // 開始時点の復習対象を固定する（途中で一覧が変わらないように）
   const [queue, setQueue] = useState<Memo[] | null>(null)
   const [index, setIndex] = useState(0)
@@ -35,8 +39,8 @@ export function ReviewPage() {
   const [backlog, setBacklog] = useState<Memo[]>([])
 
   useEffect(() => {
-    listDueMemos(new Date(), tag).then((list) => (list.length > BACKLOG ? setPending(list) : setQueue(list)), setLoadError)
-  }, [tag])
+    listDueMemos(new Date(), tag, filter).then((list) => (list.length > BACKLOG ? setPending(list) : setQueue(list)), setLoadError)
+  }, [tag, filter])
 
   function start(all: Memo[], count: number) {
     setQueue(all.slice(0, count))
@@ -61,7 +65,7 @@ export function ReviewPage() {
     if (!title) return
     setSaving(true)
     try {
-      await updateMemo(memo.id, { type: memo.type, title, body, tags: memo.tags })
+      await updateMemo(memo.id, { type: memo.type, lang: memo.lang, title, body, tags: memo.tags })
     } catch (e) {
       // 入力した内容のまま、もう一度保存できる
       console.error(e)
@@ -259,6 +263,8 @@ export function ReviewPage() {
         <article className="flex-1 space-y-4 rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-900">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+              {/* すべての言語をまとめて復習しているときは、どの言語か旗でわかるようにする */}
+              {filter === 'all' && `${PROFILES[memo.lang].flag} `}
               {t.memoType[memo.type]}
             </span>
             {memo.tags.map((tag) => (
@@ -272,7 +278,7 @@ export function ReviewPage() {
           </div>
           <h2 className="text-xl font-bold whitespace-pre-wrap">
             {memo.title}
-            {isWord && <SpeakButton text={memo.title.trim()} />}
+            {isWord && <SpeakButton text={memo.title.trim()} lang={memo.lang} />}
           </h2>
 
           {revealed ? (
@@ -281,7 +287,7 @@ export function ReviewPage() {
                 {!isNote && <p className="mb-1 text-xs font-semibold text-slate-500">{isWord ? t.review.meaning : t.review.answer}</p>}
                 {memo.body || <span className="text-slate-400">{t.review.noBody}</span>}
               </div>
-              {isWord && <WordTools key={memo.id} word={memo.title.trim()} />}
+              {isWord && <WordTools key={memo.id} word={memo.title.trim()} lang={memo.lang} />}
             </>
           ) : (
             <p className="text-sm text-slate-500 dark:text-slate-400">

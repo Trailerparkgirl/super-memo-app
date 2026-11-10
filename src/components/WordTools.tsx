@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n'
-import { findExamples, googleDefineUrl, lookUp, tatoebaUrl, type DictionaryEntry, type Example } from '../lib/flash'
+import type { StudyLang } from '../lib/db'
+import { findExamples, googleDefineUrl, tatoebaUrl, type DictionaryEntry, type Example } from '../lib/flash'
+import { PROFILES, translationLang } from '../lib/languages'
 
-/** 単語の辞書と例文（Tatoeba）。カードを表にしてから使う。 */
-export function WordTools({ word }: { word: string }) {
-  const { t } = useI18n()
+/** 単語の辞書と例文（Tatoeba）。カードを表にしてから使う。辞書と例文は単語の言語のものを使う。 */
+export function WordTools({ word: written, lang }: { word: string; lang: StudyLang }) {
+  const { t, lang: uiLang } = useI18n()
+  const profile = PROFILES[lang]
+  // 「der Hund」と書いた単語は「Hund」で調べる
+  const word = profile.searchForm(written)
   // まだ引いていないときは undefined、辞書にない単語は null
   const [entry, setEntry] = useState<DictionaryEntry | null | 'loading' | 'error'>()
   // 例文は最初に押したときにまとめて取ってきて、押すたびに次の文を見せる
@@ -16,7 +21,7 @@ export function WordTools({ word }: { word: string }) {
   async function define() {
     setEntry('loading')
     try {
-      setEntry(await lookUp(word))
+      setEntry(await profile.lookUp(word))
     } catch (e) {
       console.error(e)
       setEntry('error')
@@ -30,7 +35,7 @@ export function WordTools({ word }: { word: string }) {
     }
     setExampleState('loading')
     try {
-      setExamples(await findExamples(word))
+      setExamples(await findExamples(word, profile.tatoeba, translationLang(lang, uiLang)))
       setExampleIndex(0)
       setExampleState('idle')
     } catch (e) {
@@ -75,6 +80,7 @@ export function WordTools({ word }: { word: string }) {
                 <span className="mr-1.5 text-xs text-indigo-600 italic dark:text-indigo-400">{d.partOfSpeech}</span>
                 {d.definition}
                 {d.example && <span className="block text-slate-500 italic">“{d.example}”</span>}
+                {d.translation && <span className="block text-slate-500">{d.translation}</span>}
               </li>
             ))}
           </ol>
@@ -89,6 +95,7 @@ export function WordTools({ word }: { word: string }) {
       {example && (
         <div className="space-y-1 rounded-xl bg-indigo-50 p-3 dark:bg-indigo-950/50">
           <p className="italic">“{example.text}”</p>
+          {example.translation && <p className="text-slate-600 dark:text-slate-300">{example.translation}</p>}
           <p className="text-right text-xs text-slate-500">
             <a href={tatoebaUrl(example.id)} target="_blank" rel="noreferrer" className="underline">
               Tatoeba
