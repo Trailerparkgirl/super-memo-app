@@ -9,6 +9,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Import your own word list in Settings → “📥 Import a word list”: choose a CSV / TSV / TXT file or paste the list.
+  One word per line as `word,meaning,tags` (tags optional); tab-separated files exported from Excel, Google Sheets, Quizlet and Anki also work.
+  Words you already have are skipped, and an example file can be downloaded.
 - 🔊 button to hear how a word is pronounced, next to the word in flash cards and in reviews.
   It uses the device’s built-in English voice, so it works offline and needs no setup.
 - Daily review reminder: turn it on in Settings to get a push notification at a chosen hour when memos are due that day.

@@ -208,6 +208,17 @@ export const ja = {
     imported: (n: number) => `${n}件のメモを読み込みました`,
     invalidBackup: 'スーパーメモのバックアップファイルではありません',
     importFailed: '読み込みに失敗しました',
+    wordListTitle: '📥 単語リストの読み込み',
+    wordListBody: '手持ちの単語リストを「単語」のメモとしてまとめて追加できます。1行に1語、「単語,意味,タグ」の順で書いてください（タグはなくてもかまいません）。',
+    wordListFormat:
+      'CSV（カンマ区切り）と、Excel・Google スプレッドシート・Quizlet・Anki から書き出したタブ区切りのファイルに対応しています。意味にカンマを含むときは "..." で囲んでください。1行目の見出し（word など）、空の行、# で始まる行は読み飛ばします。すでにある単語は追加しません。',
+    downloadExample: '見本のファイルをダウンロード',
+    chooseWordFile: 'ファイルを選んで読み込む（.csv / .tsv / .txt）',
+    pastePlaceholder: 'または、ここに貼り付け\napple,りんご\nresilient,回復力のある',
+    addPasted: '貼り付けた単語を追加',
+    noWordsFound: '単語が見つかりませんでした。1行に「単語,意味」の形になっているか確認してください。',
+    confirmWords: (n: number) => `${n}語を追加しますか？（明日から復習に出ます）`,
+    wordsAdded: (added: number, skipped: number) => `${added}語を追加しました${skipped > 0 ? `（重複していた${skipped}語は追加していません）` : ''}`,
     howTitle: '復習のしくみ',
     howBody:
       'メモを書いた翌日に最初の復習があります。その後は振り返ったときの評価に応じて、記憶が薄れかける直前（思い出せる確率が約90%）のタイミングで次の復習が組まれます。覚えているほど間隔は 3日 → 1週間 → 1ヶ月… と伸び、忘れていたら短く戻ります。',
