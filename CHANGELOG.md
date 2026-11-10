@@ -44,6 +44,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- The 🔊 pronunciation button sounds more natural: it plays a recording of a real person from the dictionary when there is one,
+  and otherwise uses the most natural English voice on the device instead of the default one.
+  Settings → “🔊 Pronunciation” lets you choose a female or male voice (or a specific voice) and try it out.
 - Example sentences for words now come from [Tatoeba](https://tatoeba.org), a free public database of sentences written by people.
   No API key is needed, so the Gemini API key setting was removed. Each example shows its author and license.
   Run `supabase/schema.sql` again to remove the `user_settings` table that stored the key.

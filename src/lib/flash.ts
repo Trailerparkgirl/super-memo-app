@@ -1,6 +1,7 @@
 import { Rating, type Grade } from 'ts-fsrs'
 import type { Memo } from './db'
 import { endOfDay } from './scheduler'
+import { load, save } from './storage'
 
 /** front: 単語を見て意味を思い出す / back: 意味を見て単語を思い出す */
 export type FlashDirection = 'front' | 'back'
@@ -38,23 +39,6 @@ export function pickNext(cards: Memo[], lastGrades: Map<string, Grade>, previous
 }
 
 // ---- 端末に保存する設定 ----
-
-function load(key: string): string | null {
-  try {
-    return localStorage.getItem(key)
-  } catch {
-    return null
-  }
-}
-
-function save(key: string, value: string | null) {
-  try {
-    if (value) localStorage.setItem(key, value)
-    else localStorage.removeItem(key)
-  } catch {
-    // 保存できなくても今回は使える
-  }
-}
 
 const DIRECTION_KEY = 'super-memo:flash-direction'
 
@@ -102,16 +86,33 @@ export interface DictionaryEntry {
 interface ApiEntry {
   word: string
   phonetic?: string
-  phonetics?: { text?: string }[]
+  phonetics?: { text?: string; audio?: string }[]
   meanings: { partOfSpeech: string; definitions: { definition: string; example?: string }[] }[]
+}
+
+// 発音の録音と意味の両方で使うので、同じ単語は1回だけ取ってくる（失敗したときは次にもう一度試す）
+const entriesCache = new Map<string, Promise<ApiEntry[] | null>>()
+
+function fetchEntries(word: string): Promise<ApiEntry[] | null> {
+  const key = word.toLowerCase()
+  let entries = entriesCache.get(key)
+  if (!entries) {
+    entries = (async () => {
+      const res = await fetchWithRetry(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`)
+      if (res.status === 404) return null
+      if (!res.ok) throw new Error(`Dictionary error ${res.status}`)
+      return (await res.json()) as ApiEntry[]
+    })()
+    entries.catch(() => entriesCache.delete(key))
+    entriesCache.set(key, entries)
+  }
+  return entries
 }
 
 /** 英単語の意味を引く。辞書になければ null。 */
 export async function lookUp(word: string): Promise<DictionaryEntry | null> {
-  const res = await fetchWithRetry(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`)
-  if (res.status === 404) return null
-  if (!res.ok) throw new Error(`Dictionary error ${res.status}`)
-  const entries = (await res.json()) as ApiEntry[]
+  const entries = await fetchEntries(word)
+  if (!entries) return null
   // 品詞ごとに上位2つまで、全体で6つまで
   const definitions = entries
     .flatMap((e) => e.meanings)
@@ -123,6 +124,12 @@ export async function lookUp(word: string): Promise<DictionaryEntry | null> {
     phonetic: first.phonetic ?? first.phonetics?.find((p) => p.text)?.text,
     definitions,
   }
+}
+
+/** 辞書にある、人が読み上げた発音の録音（アメリカ英語を優先）。なければ null。 */
+export async function findRecording(word: string): Promise<string | null> {
+  const audio = ((await fetchEntries(word)) ?? []).flatMap((e) => e.phonetics ?? []).flatMap((p) => (p.audio ? [p.audio] : []))
+  return audio.find((url) => url.endsWith('-us.mp3')) ?? audio[0] ?? null
 }
 
 export const googleDefineUrl = (word: string) => `https://www.google.com/search?q=${encodeURIComponent(`define ${word}`)}`
