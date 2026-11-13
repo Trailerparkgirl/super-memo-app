@@ -9,6 +9,21 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Mind maps for what you learn at work and while coding. Each map grows from a central theme: branches spread out radially on both sides and items grow from them, laid out automatically.
+  Pick a color for each branch that comes out of the theme; everything further out follows that color.
+  Drag with one finger to move around, pinch (or scroll on a computer) to zoom, and tap “Fit” to see the whole map. Collapse branches you don’t need right now.
+  Run `supabase/schema.sql` again to add the `maps`, `nodes` and `cards` tables.
+- Every item has a definition. It isn’t shown on the map; tap the item to read or edit it.
+- AI suggestions: when you enter a theme or an item, the AI suggests branches that could grow from it. They appear as dotted items on the map; tap one to add it, or add them all.
+  “✨ Write with AI” writes the definition of an item for you.
+  Uses the Claude API from a new `ai` edge function, so your API key stays on the server (see “AI” in the README). The model is Claude Opus 5.5 by default and can be changed with `ANTHROPIC_MODEL`.
+- Capture (the + tab): jot down something you just learned. Put it in your Inbox, or let the AI turn it into items in the right place on your maps.
+  Move any item, with its branches, to another place or another map (“✨ Ask AI where it goes” suggests one).
+- Review on your maps: items with a definition get a “definition” card, and items with two or more branches get a “branches” card. Both come up for review from the next day.
+  Type or dictate your answer and “✨ Grade my answer” lets the AI check it against your map and suggest a rating (you still choose).
+  Review just one map from Home.
+- “Memory” on a map colors each item by how likely you are to remember it right now; Home shows a memory forecast for each map, and your Inbox.
+- Search all your maps by item name or definition.
 - Study several languages separately: English, German and Japanese.
   Each memo has a language (existing memos are English), and a switcher (All / 🇬🇧 / 🇩🇪 / 🇯🇵) on Home, Memos and Flash cards shows only that language's memos, reviews and words. New memos get the selected language.
   Define, Example and 🔊 work for each language: German and Japanese definitions, IPA and native-speaker recordings come from Wiktionary; example sentences from Tatoeba now come with a translation (Japanese when the app is in Japanese, otherwise English); the device voice reads each word in its own language, and the voice can be chosen per language in Settings.
@@ -52,6 +67,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- The tabs are now Today / Maps / + (Capture) / Words / Settings. Words, flash cards, the dictionary, examples and pronunciation all live in the Words tab, with the language switcher.
+- Your notes and Q&A memos move into the Inbox as items when you run `supabase/schema.sql` again: the title (question) becomes the item and the content (answer) its definition.
+  Their review schedule and history come along, so your streak continues. Words don’t change.
+- Backups now include your maps (backup version 2). Notes and Q&A memos in older backups are restored into the Inbox.
+- The daily reminder counts map reviews as well as words, and opens Home. Deploy `daily-reminder` again to update it.
 - The 🔊 pronunciation button sounds more natural: it plays a recording of a real person from the dictionary when there is one,
   and otherwise uses the most natural English voice on the device instead of the default one.
   Settings → “🔊 Pronunciation” lets you choose a female or male voice (or a specific voice) and try it out.
@@ -76,6 +96,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Removed
 
+- Writing new notes and Q&A memos (map items with definitions replace them)
+- Reviewing by tag on Home (review by map instead)
 - "Keep data safe" persistent storage request in Settings, which only applied to browser storage
 
 ## [0.1.0] - 2026-10-15

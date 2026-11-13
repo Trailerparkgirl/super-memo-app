@@ -1,44 +1,40 @@
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Rating } from 'ts-fsrs'
 import { LangTabs } from '../components/StudyLangPicker'
 import { useI18n } from '../i18n'
-import { type Memo, type MemoType } from '../lib/db'
+import { type Memo } from '../lib/db'
 import { defaultLang, PROFILES, studyFilterAtom } from '../lib/languages'
 import { createMemo, deleteMemo, getMemo, listLogs, parseTags, resetMemo, updateMemo } from '../lib/memos'
 import { daysUntil, GRADES } from '../lib/scheduler'
 import { unsavedChangesAtom } from '../lib/unsaved'
 import { useData } from '../lib/useData'
 
-export function MemoEditPage() {
+export function WordEditPage() {
   const { id } = useParams()
-  // 読み込み中は undefined、存在しないメモは null
+  // 読み込み中は undefined、存在しない単語は null
   const memo = useData(async () => (id ? getMemo(id) : null), [id])
   if (id && memo === undefined) return null
-  // メモが切り替わったらフォームを作り直して内容を読み込む
-  return <MemoForm key={memo?.id ?? 'new'} memo={memo ?? undefined} />
+  // 単語が切り替わったらフォームを作り直して内容を読み込む
+  return <WordForm key={memo?.id ?? 'new'} memo={memo ?? undefined} />
 }
 
-function MemoForm({ memo }: { memo?: Memo }) {
+function WordForm({ memo }: { memo?: Memo }) {
   const { t } = useI18n()
   const id = memo?.id
   const navigate = useNavigate()
   const logs = useData(async () => (id ? listLogs(id) : []), [id])
-  // フラッシュカード画面から来たときは ?type=word で「単語」を選んだ状態にする
-  const [params] = useSearchParams()
   // 新しいメモは、いま選んでいる言語にする
   const filter = useAtomValue(studyFilterAtom)
 
   // 開いたとき（続けて追加したときは保存した直後）の内容。これと違えば、保存していない変更がある
   const [initial, setInitial] = useState(() => ({
-    type: memo?.type ?? ((params.get('type') === 'word' ? 'word' : 'note') as MemoType),
     lang: memo?.lang ?? defaultLang(filter),
     title: memo?.title ?? '',
     body: memo?.body ?? '',
     tags: memo?.tags.join(' ') ?? '',
   }))
-  const [type, setType] = useState(initial.type)
   const [lang, setLang] = useState(initial.lang)
   const [title, setTitle] = useState(initial.title)
   const [body, setBody] = useState(initial.body)
@@ -49,9 +45,9 @@ function MemoForm({ memo }: { memo?: Memo }) {
   const [added, setAdded] = useState<string | null>(null)
   const titleRef = useRef<HTMLTextAreaElement>(null)
 
-  // 新しいメモで種類や言語を切り替えただけなら、失うものはないので聞かない
+  // 新しい単語で言語を切り替えただけなら、失うものはないので聞かない
   const dirty =
-    title !== initial.title || body !== initial.body || tags !== initial.tags || (!!id && (type !== initial.type || lang !== initial.lang))
+    title !== initial.title || body !== initial.body || tags !== initial.tags || (!!id && lang !== initial.lang)
   const setUnsaved = useSetAtom(unsavedChangesAtom)
   useEffect(() => {
     setUnsaved(dirty)
@@ -70,22 +66,17 @@ function MemoForm({ memo }: { memo?: Memo }) {
     navigate(-1)
   }
 
-  const isNote = type === 'note'
-  const canSave = title.trim() !== '' && (isNote || body.trim() !== '') && !busy
-  const listPath = type === 'word' ? '/memos?type=word' : '/memos'
+  const canSave = title.trim() !== '' && body.trim() !== '' && !busy
+  const listPath = '/words'
 
   const fields = {
-    note: { title: t.edit.title, body: t.edit.content, titleRows: 1, bodyRows: 10, titlePlaceholder: t.edit.titlePlaceholder, bodyPlaceholder: t.edit.contentPlaceholder },
-    qa: { title: t.edit.question, body: t.edit.answer, titleRows: 3, bodyRows: 4, titlePlaceholder: t.edit.questionPlaceholder, bodyPlaceholder: t.edit.answerPlaceholder },
-    word: {
-      title: t.edit.word,
-      body: t.edit.meaning,
-      titleRows: 1,
-      bodyRows: 3,
-      titlePlaceholder: t.edit.wordPlaceholder(PROFILES[lang].sample),
-      bodyPlaceholder: t.edit.meaningPlaceholder,
-    },
-  }[type]
+    title: t.edit.word,
+    body: t.edit.meaning,
+    titleRows: 1,
+    bodyRows: 3,
+    titlePlaceholder: t.edit.wordPlaceholder(PROFILES[lang].sample),
+    bodyPlaceholder: t.edit.meaningPlaceholder,
+  }
 
   /** 書き込みを1つずつ実行する。失敗したら知らせて false を返す。 */
   async function write(task: () => Promise<unknown>): Promise<boolean> {
@@ -104,16 +95,16 @@ function MemoForm({ memo }: { memo?: Memo }) {
 
   async function save() {
     if (!canSave) return
-    const input = { type, lang, title: title.trim(), body: body.trim(), tags: parseTags(tags) }
+    const input = { type: 'word' as const, lang, title: title.trim(), body: body.trim(), tags: parseTags(tags) }
     if (await write(() => (id ? updateMemo(id, input) : createMemo(input)))) navigate(listPath)
   }
 
-  /** 新しいメモを保存して、種類・言語・タグはそのままに次のメモを書き始める */
+  /** 新しい単語を保存して、言語とタグはそのままに次の単語を書き始める */
   async function saveAndAdd() {
     if (id || !canSave) return
-    const input = { type, lang, title: title.trim(), body: body.trim(), tags: parseTags(tags) }
+    const input = { type: 'word' as const, lang, title: title.trim(), body: body.trim(), tags: parseTags(tags) }
     if (!(await write(() => createMemo(input)))) return
-    setInitial({ type, lang, title: '', body: '', tags })
+    setInitial({ lang, title: '', body: '', tags })
     setTitle('')
     setBody('')
     setAdded(input.title)
@@ -143,24 +134,6 @@ function MemoForm({ memo }: { memo?: Memo }) {
           {t.edit.save}
         </button>
       </header>
-
-      <div className="grid grid-cols-3 rounded-xl bg-slate-200 p-1 text-sm dark:bg-slate-800">
-        {(
-          [
-            ['note', t.edit.typeNote],
-            ['qa', t.edit.typeQa],
-            ['word', t.edit.typeWord],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            onClick={() => setType(value)}
-            className={`rounded-lg py-2 ${type === value ? 'bg-white font-semibold shadow-sm dark:bg-slate-950' : 'text-slate-500'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
 
       <div className="space-y-1">
         <span className="text-sm text-slate-600 dark:text-slate-300">{t.edit.language}</span>

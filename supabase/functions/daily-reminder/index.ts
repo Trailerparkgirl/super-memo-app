@@ -31,7 +31,7 @@ const supabase = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KE
 
 const messages: Record<string, { title: string; body: (n: number) => string }> = {
   ja: { title: 'スーパーメモ', body: (n) => `今日の復習が${n}件あります` },
-  en: { title: 'Super Memo', body: (n) => `You have ${n} ${n === 1 ? 'memo' : 'memos'} to review today` },
+  en: { title: 'Super Memo', body: (n) => `You have ${n} ${n === 1 ? 'thing' : 'things'} to review today` },
 }
 
 /** その時間帯での今日の日付（YYYY-MM-DD）、今の時（0〜23）、今日の終わりの時刻 */
@@ -65,13 +65,17 @@ async function remind(subscription: Subscription, now: Date): Promise<boolean> {
   // 通知の時刻を過ぎたら、その日の最初の呼び出しで1回だけ送る（呼び出しが遅れても飛ばさない）
   if (local.hour < subscription.remind_hour || subscription.last_sent_on === local.date) return false
 
-  // アプリの「今日の復習」と同じく、今日の終わりまでに予定日が来るメモを数える
-  const { count, error } = await supabase
-    .from('memos')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', subscription.user_id)
-    .lte('due', local.endOfDay.toISOString())
-  if (error) throw error
+  // アプリの「今日の復習」と同じく、今日の終わりまでに予定日が来るマップのカードと単語を数える
+  const countDue = async (table: 'memos' | 'cards') => {
+    const { count, error } = await supabase
+      .from(table)
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', subscription.user_id)
+      .lte('due', local.endOfDay.toISOString())
+    if (error) throw error
+    return count ?? 0
+  }
+  const count = (await countDue('memos')) + (await countDue('cards'))
   // 送る前に記録して、失敗しても同じ日に何度も送らないようにする
   await supabase.from('push_subscriptions').update({ last_sent_on: local.date }).eq('endpoint', subscription.endpoint)
   if (!count) return false
@@ -80,7 +84,7 @@ async function remind(subscription: Subscription, now: Date): Promise<boolean> {
   try {
     await webpush.sendNotification(
       { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
-      JSON.stringify({ title: message.title, body: message.body(count), url: '/review', count }),
+      JSON.stringify({ title: message.title, body: message.body(count), url: '/', count }),
     )
     return true
   } catch (e) {

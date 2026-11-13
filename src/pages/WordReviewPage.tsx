@@ -14,7 +14,7 @@ import { GRADES, overdueDays, preview } from '../lib/scheduler'
 const BACKLOG = 30
 const BATCH = 20
 
-export function ReviewPage() {
+export function WordReviewPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
   // ホームでタグを選んだときは ?tag=英語 のように、そのタグのメモだけ復習する
@@ -39,7 +39,9 @@ export function ReviewPage() {
   const [backlog, setBacklog] = useState<Memo[]>([])
 
   useEffect(() => {
-    listDueMemos(new Date(), tag, filter).then((list) => (list.length > BACKLOG ? setPending(list) : setQueue(list)), setLoadError)
+    listDueMemos(new Date(), tag, filter)
+      .then((all) => all.filter((m) => m.type === 'word'))
+      .then((list) => (list.length > BACKLOG ? setPending(list) : setQueue(list)), setLoadError)
   }, [tag, filter])
 
   function start(all: Memo[], count: number) {
@@ -210,15 +212,13 @@ export function ReviewPage() {
     )
   }
 
-  const isNote = memo.type === 'note'
-  const isWord = memo.type === 'word'
-  const [titleLabel, bodyLabel] = isWord ? [t.edit.word, t.edit.meaning] : isNote ? [t.edit.title, t.edit.content] : [t.edit.question, t.edit.answer]
+  const [titleLabel, bodyLabel] = [t.edit.word, t.edit.meaning]
   const fieldClass = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base dark:border-slate-700 dark:bg-slate-950'
 
   return (
     <div className="flex min-h-[calc(100dvh-2rem)] flex-col gap-4">
       <header className="flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+        <button onClick={() => navigate('/words')} className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
           {t.review.quit}
         </button>
         <div className="flex items-center gap-4">
@@ -278,20 +278,20 @@ export function ReviewPage() {
           </div>
           <h2 className="text-xl font-bold whitespace-pre-wrap">
             {memo.title}
-            {isWord && <SpeakButton text={memo.title.trim()} lang={memo.lang} />}
+            <SpeakButton text={memo.title.trim()} lang={memo.lang} />
           </h2>
 
           {revealed ? (
             <>
               <div className="border-t border-slate-200 pt-4 whitespace-pre-wrap leading-relaxed dark:border-slate-700">
-                {!isNote && <p className="mb-1 text-xs font-semibold text-slate-500">{isWord ? t.review.meaning : t.review.answer}</p>}
+                <p className="mb-1 text-xs font-semibold text-slate-500">{t.review.meaning}</p>
                 {memo.body || <span className="text-slate-400">{t.review.noBody}</span>}
               </div>
-              {isWord && <WordTools key={memo.id} word={memo.title.trim()} lang={memo.lang} />}
+              <WordTools key={memo.id} word={memo.title.trim()} lang={memo.lang} />
             </>
           ) : (
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {isWord ? t.review.recallWord : isNote ? t.review.recallNote : t.review.recallQa}
+              {t.review.recallWord}
             </p>
           )}
         </article>
@@ -332,7 +332,7 @@ export function ReviewPage() {
           </>
         ) : (
           <button onClick={() => setRevealed(true)} className="w-full rounded-xl bg-indigo-600 py-4 font-semibold text-white">
-            {isNote ? t.review.showContent : t.review.showAnswer}
+            {t.review.showAnswer}
           </button>
         )}
       </div>

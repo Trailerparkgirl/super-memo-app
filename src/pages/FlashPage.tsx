@@ -46,7 +46,7 @@ export function FlashPage() {
       <div>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">{t.flash.title}</h1>
-          <Link to="/memos/new?type=word" className="rounded-full bg-indigo-50 px-3 py-1.5 text-sm font-semibold text-indigo-600 dark:bg-indigo-950 dark:text-indigo-300">
+          <Link to="/words/new" className="rounded-full bg-indigo-50 px-3 py-1.5 text-sm font-semibold text-indigo-600 dark:bg-indigo-950 dark:text-indigo-300">
             {t.flash.addWord}
           </Link>
         </div>
@@ -96,7 +96,7 @@ export function FlashPage() {
           <button onClick={() => setSession(cards)} className="w-full rounded-xl bg-indigo-600 py-4 font-semibold text-white">
             {t.flash.start(cards.length)}
           </button>
-          <Link to="/memos?type=word" className="block text-center text-sm text-slate-500 underline">
+          <Link to="/words" className="block text-center text-sm text-slate-500 underline">
             {t.flash.wordList}
           </Link>
         </>

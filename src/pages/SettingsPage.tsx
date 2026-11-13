@@ -4,7 +4,8 @@ import { LangTabs } from '../components/StudyLangPicker'
 import { LANGUAGES, useI18n } from '../i18n'
 import { supabase } from '../lib/db'
 import { defaultLang, PROFILES, STUDY_LANGS, studyFilterAtom } from '../lib/languages'
-import { exportBackup, importBackup, importWords, InvalidBackupError } from '../lib/memos'
+import { exportBackup, importBackup, InvalidBackupError } from '../lib/backup'
+import { importWords } from '../lib/memos'
 import { disableReminder, enableReminder, getReminderHour, NotificationDeniedError, reminderConfigured, reminderSupported } from '../lib/reminder'
 import {
   getGender,
@@ -310,7 +311,7 @@ export function SettingsPage() {
 
   async function upload(file: File) {
     try {
-      const count = await importBackup(file)
+      const count = await importBackup(file, t.maps.inbox)
       setMessage(t.settings.imported(count))
     } catch (e) {
       setMessage(e instanceof InvalidBackupError ? t.settings.invalidBackup : t.settings.importFailed)
