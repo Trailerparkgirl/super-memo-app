@@ -7,9 +7,10 @@ import { unsavedChangesAtom } from '../lib/unsaved'
 
 const icons = {
   home: 'M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10',
-  memos: 'M7 4h10a2 2 0 012 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 012-2zM9 9h6M9 13h4',
+  // 中心から枝が伸びるマインドマップ
+  maps: 'M9.6 12a2.4 2.4 0 104.8 0 2.4 2.4 0 10-4.8 0M2.8 6a1.7 1.7 0 103.4 0 1.7 1.7 0 10-3.4 0M2.8 18a1.7 1.7 0 103.4 0 1.7 1.7 0 10-3.4 0M17.8 12a1.7 1.7 0 103.4 0 1.7 1.7 0 10-3.4 0M10 10.5L6 7.2M10 13.5L6 16.8M14.4 12h3.4',
   plus: 'M12 5v14M5 12h14',
-  flash: 'M13 2L4 14h7l-1 8 9-12h-7l1-8z',
+  words: 'M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2zM9 7h7M9 11h5',
   settings:
     'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z',
 }
@@ -22,7 +23,7 @@ export function Icon({ d, className = 'size-6' }: { d: string; className?: strin
   )
 }
 
-/** 編集中のメモを保存せずに別の画面へ移るときは、確認してから移る */
+/** 編集中のものを保存せずに別の画面へ移るときは、確認してから移る */
 function useConfirmLeave() {
   const { t } = useI18n()
   const unsaved = useAtomValue(unsavedChangesAtom)
@@ -54,24 +55,27 @@ function Tab({ to, icon, label, badge }: { to: string; icon: string; label: stri
   )
 }
 
+// 復習中とマップを開いている間は、画面を広く使えるようタブバーを隠す
+const FULL_SCREEN = /^\/(review|words\/review|maps\/[^/]+)$/
+
 export function TabBar({ dueCount }: { dueCount: number }) {
   const { t } = useI18n()
   const confirmLeave = useConfirmLeave()
   const focusMode = useAtomValue(focusModeAtom)
-  // 復習中とフラッシュカードの練習中は集中できるようタブバーを隠す
-  if (useLocation().pathname === '/review' || focusMode) return null
+  // フラッシュカードの練習中も隠す
+  if (FULL_SCREEN.test(useLocation().pathname) || focusMode) return null
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-slate-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
       <div className="mx-auto flex max-w-xl items-end">
-        <Tab to="/" icon={icons.home} label={t.tabs.review} badge={dueCount} />
-        <Tab to="/memos" icon={icons.memos} label={t.tabs.memos} />
-        <NavLink to="/memos/new" onClick={confirmLeave('/memos/new')} className="flex flex-1 justify-center py-1.5" aria-label={t.tabs.newMemo}>
+        <Tab to="/" icon={icons.home} label={t.tabs.today} badge={dueCount} />
+        <Tab to="/maps" icon={icons.maps} label={t.tabs.maps} />
+        <NavLink to="/capture" onClick={confirmLeave('/capture')} className="flex flex-1 justify-center py-1.5" aria-label={t.tabs.capture}>
           <span className="grid size-12 place-items-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
             <Icon d={icons.plus} className="size-7" />
           </span>
         </NavLink>
-        <Tab to="/flash" icon={icons.flash} label={t.tabs.flash} />
+        <Tab to="/words" icon={icons.words} label={t.tabs.words} />
         <Tab to="/settings" icon={icons.settings} label={t.tabs.settings} />
       </div>
     </nav>

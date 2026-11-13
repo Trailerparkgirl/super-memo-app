@@ -31,9 +31,50 @@ export interface Memo {
   due: number
 }
 
+/** map: ふつうのマップ / inbox: 受信箱（＋で書いた一言をためておく。1人に1つ） */
+export type MapKind = 'map' | 'inbox'
+
+export interface MindMap {
+  id: string
+  kind: MapKind
+  createdAt: Date
+}
+
+/** マップの項目。parentId が null のものがマップの中心（テーマ） */
+export interface MapNode {
+  id: string
+  mapId: string
+  parentId: string | null
+  /** 兄弟の中での順番（小さいほど先） */
+  position: number
+  title: string
+  /** 定義。マップには出さず、項目を開いたときと復習のときに見る */
+  definition: string
+  /** テーマから出る枝の色（BRANCH_COLORS のキー）。その先の枝は親の色を受け継ぐ */
+  color: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+/** explain: 定義を思い出す / children: 枝（子の項目）を思い出す */
+export type CardKind = 'explain' | 'children'
+
+/** マップの項目の復習カード */
+export interface NodeCard {
+  id: string
+  nodeId: string
+  kind: CardKind
+  card: Card
+  /** card.due のタイムスタンプ */
+  due: number
+}
+
 export interface ReviewLog {
   id?: number
-  memoId: string
+  /** 単語の復習ならメモの ID */
+  memoId?: string
+  /** マップの復習ならカードの ID */
+  cardId?: string
   rating: Grade
   reviewedAt: Date
   /** 次の復習までの日数 */
@@ -59,9 +100,36 @@ export interface MemoRow {
   due: string
 }
 
+export interface MapRow {
+  id: string
+  kind: MapKind
+  created_at: string
+}
+
+export interface NodeRow {
+  id: string
+  map_id: string
+  parent_id: string | null
+  position: number
+  title: string
+  definition: string
+  color: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CardRow {
+  id: string
+  node_id: string
+  kind: CardKind
+  card: Card
+  due: string
+}
+
 export interface ReviewLogRow {
   id: number
-  memo_id: string
+  memo_id: string | null
+  card_id: string | null
   rating: Grade
   reviewed_at: string
   scheduled_days: number
@@ -113,10 +181,56 @@ export function memoToRow(memo: Memo): MemoRow {
   }
 }
 
+export function mapFromRow(row: MapRow): MindMap {
+  return { id: row.id, kind: row.kind, createdAt: new Date(row.created_at) }
+}
+
+export function mapToRow(map: MindMap): MapRow {
+  return { id: map.id, kind: map.kind, created_at: map.createdAt.toISOString() }
+}
+
+export function nodeFromRow(row: NodeRow): MapNode {
+  return {
+    id: row.id,
+    mapId: row.map_id,
+    parentId: row.parent_id,
+    position: row.position,
+    title: row.title,
+    definition: row.definition,
+    color: row.color,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  }
+}
+
+export function nodeToRow(node: MapNode): NodeRow {
+  return {
+    id: node.id,
+    map_id: node.mapId,
+    parent_id: node.parentId,
+    position: node.position,
+    title: node.title,
+    definition: node.definition,
+    color: node.color,
+    created_at: node.createdAt.toISOString(),
+    updated_at: node.updatedAt.toISOString(),
+  }
+}
+
+export function cardFromRow(row: CardRow): NodeCard {
+  const card = reviveCard(row.card)
+  return { id: row.id, nodeId: row.node_id, kind: row.kind, card, due: card.due.getTime() }
+}
+
+export function cardToRow(card: NodeCard): CardRow {
+  return { id: card.id, node_id: card.nodeId, kind: card.kind, card: card.card, due: card.card.due.toISOString() }
+}
+
 export function logFromRow(row: ReviewLogRow): ReviewLog {
   return {
     id: row.id,
-    memoId: row.memo_id,
+    memoId: row.memo_id ?? undefined,
+    cardId: row.card_id ?? undefined,
     rating: row.rating,
     reviewedAt: new Date(row.reviewed_at),
     scheduledDays: row.scheduled_days,
@@ -127,7 +241,8 @@ export function logFromRow(row: ReviewLogRow): ReviewLog {
 
 export function logToRow(log: ReviewLog): Omit<ReviewLogRow, 'id'> {
   return {
-    memo_id: log.memoId,
+    memo_id: log.memoId ?? null,
+    card_id: log.cardId ?? null,
     rating: log.rating,
     reviewed_at: log.reviewedAt.toISOString(),
     scheduled_days: log.scheduledDays,

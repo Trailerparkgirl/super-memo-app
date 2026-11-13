@@ -4,7 +4,6 @@ import {
   logToRow,
   memoFromRow,
   memoToRow,
-  reviveCard,
   supabase,
   type Memo,
   type MemoRow,
@@ -14,6 +13,7 @@ import {
   type StudyLang,
 } from './db'
 import type { StudyFilter } from './languages'
+import { chunks, run, runCount, selectAll } from './query'
 import { endOfDay, newCard } from './scheduler'
 import { notifyChange } from './useData'
 import type { WordListItem } from './wordList'
@@ -24,37 +24,6 @@ export interface MemoInput {
   title: string
   body: string
   tags: string[]
-}
-
-type Result<T> = PromiseLike<{ data: T | null; error: unknown }>
-type CountResult = PromiseLike<{ count: number | null; error: unknown }>
-
-async function run<T>(query: Result<T>): Promise<T> {
-  const { data, error } = await query
-  if (error) throw error
-  return data as T
-}
-
-async function runCount(query: CountResult): Promise<number> {
-  const { count, error } = await query
-  if (error) throw error
-  return count ?? 0
-}
-
-// Supabase は1回に最大1000行しか返さないので、分けて全部取ってくる
-const PAGE = 1000
-
-async function selectAll<T>(page: (from: number, to: number) => Result<T[]>): Promise<T[]> {
-  const rows: T[] = []
-  for (let from = 0; ; from += PAGE) {
-    const chunk = await run(page(from, from + PAGE - 1))
-    rows.push(...chunk)
-    if (chunk.length < PAGE) return rows
-  }
-}
-
-function chunks<T>(items: T[], size: number): T[][] {
-  return Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size))
 }
 
 /** 'all' でなければ、その言語のメモだけにする */
@@ -223,61 +192,4 @@ export async function importWords(items: WordListItem[], lang: StudyLang): Promi
   }
   notifyChange()
   return { added: memos.length, skipped: items.length - memos.length }
-}
-
-// ---- バックアップ ----
-
-interface Backup {
-  app: 'super-memo'
-  version: 1
-  exportedAt: string
-  memos: Memo[]
-  logs: ReviewLog[]
-}
-
-export async function exportBackup(): Promise<Blob> {
-  const logs = await selectAll<ReviewLogRow>((from, to) => supabase.from('review_logs').select().order('id').range(from, to))
-  const backup: Backup = {
-    app: 'super-memo',
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    memos: await listMemos(),
-    logs: logs.map(logFromRow),
-  }
-  return new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
-}
-
-export class InvalidBackupError extends Error {}
-
-/**
- * バックアップを読み込む。同じIDのメモは上書きする。
- * 端末に保存していた頃のバックアップもそのまま読める。
- * 途中で失敗しても、もう一度読み込めば最後まで反映される。
- */
-export async function importBackup(file: File): Promise<number> {
-  const data = JSON.parse(await file.text()) as Backup
-  if (data.app !== 'super-memo' || !Array.isArray(data.memos)) {
-    throw new InvalidBackupError()
-  }
-  const memos: Memo[] = data.memos.map((m) => {
-    const card = reviveCard(m.card)
-    // 言語を足す前のバックアップは英語のメモとして読む
-    return { ...m, lang: m.lang ?? 'en', createdAt: new Date(m.createdAt), updatedAt: new Date(m.updatedAt), card, due: card.due.getTime() }
-  })
-  const ids = new Set(memos.map((m) => m.id))
-  const logs = (data.logs ?? [])
-    .filter((l) => ids.has(l.memoId))
-    .map((l) => logToRow({ ...l, reviewedAt: new Date(l.reviewedAt) }))
-
-  for (const chunk of chunks(memos, 500)) {
-    await run(supabase.from('memos').upsert(chunk.map(memoToRow)))
-  }
-  for (const chunk of chunks([...ids], 100)) {
-    await run(supabase.from('review_logs').delete().in('memo_id', chunk))
-  }
-  for (const chunk of chunks(logs, 500)) {
-    await run(supabase.from('review_logs').insert(chunk))
-  }
-  notifyChange()
-  return memos.length
 }

@@ -21,7 +21,7 @@ export default defineConfig({
       manifest: {
         name: 'スーパーメモ',
         short_name: 'スーパーメモ',
-        description: '忘却曲線に合わせて、メモを振り返るタイミングを教えてくれるアプリ',
+        description: '仕事やコーディングで学んだことをマインドマップで育て、忘れかけたころに復習できるアプリ',
         lang: 'ja',
         start_url: '/',
         display: 'standalone',

@@ -3,6 +3,7 @@ import {
   fsrs,
   generatorParameters,
   Rating,
+  State,
   type Card,
   type Grade,
   type RecordLogItem,
@@ -49,6 +50,12 @@ function shortenForDelay(item: RecordLogItem, onTimeDays: number, overdue: numbe
   if (shortened >= days) return item
   const due = new Date(item.card.due.getTime() - (days - shortened) * DAY)
   return { ...item, card: { ...item.card, scheduled_days: shortened, due } }
+}
+
+/** いま思い出せる確率（0〜1）。まだ一度も復習していなければ null */
+export function retrievability(card: Card, now = new Date()): number | null {
+  if (card.state === State.New) return null
+  return scheduler.get_retrievability(card, now, false)
 }
 
 /** 4つの評価それぞれを選んだ場合の結果 */
