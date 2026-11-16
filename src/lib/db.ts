@@ -52,9 +52,14 @@ export interface MapNode {
   definition: string
   /** テーマから出る枝の色（BRANCH_COLORS のキー）。その先の枝は親の色を受け継ぐ */
   color: string | null
+  /** マップでの見た目。null なら深さで決まる（defaultShape） */
+  shape: NodeShape | null
   createdAt: Date
   updatedAt: Date
 }
+
+/** マップの項目の見た目。filled: 枝の色で塗った札 / outline: 枝の色の枠 / line: 文字に下線 */
+export type NodeShape = 'filled' | 'outline' | 'line'
 
 /** explain: 定義を思い出す / children: 枝（子の項目）を思い出す */
 export type CardKind = 'explain' | 'children'
@@ -114,6 +119,7 @@ export interface NodeRow {
   title: string
   definition: string
   color: string | null
+  shape: NodeShape | null
   created_at: string
   updated_at: string
 }
@@ -198,6 +204,7 @@ export function nodeFromRow(row: NodeRow): MapNode {
     title: row.title,
     definition: row.definition,
     color: row.color,
+    shape: row.shape ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   }
@@ -212,6 +219,7 @@ export function nodeToRow(node: MapNode): NodeRow {
     title: node.title,
     definition: node.definition,
     color: node.color,
+    shape: node.shape,
     created_at: node.createdAt.toISOString(),
     updated_at: node.updatedAt.toISOString(),
   }

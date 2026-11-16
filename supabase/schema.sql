@@ -136,6 +136,9 @@ create table if not exists public.nodes (
   updated_at timestamptz not null default now()
 );
 
+-- マップでの見た目（filled: 塗った札 / outline: 枠 / line: 下線）。null なら深さで決まる
+alter table public.nodes add column if not exists shape text check (shape in ('filled', 'outline', 'line'));
+
 create index if not exists nodes_map_idx on public.nodes (map_id);
 create index if not exists nodes_parent_idx on public.nodes (parent_id);
 create unique index if not exists nodes_one_center_idx on public.nodes (map_id) where parent_id is null;

@@ -3,10 +3,14 @@
 // その先は外へ向かって伸ばす。位置は毎回ここで決めるので、データベースには保存しない。
 // 文字の幅は画面と同じフォントで測る（measure）ので、項目どうしは重ならない。
 
+import type { NodeShape } from './db'
+
 export interface LayoutNode {
   id: string
   title: string
   children: LayoutNode[]
+  /** 見た目。なければ深さで決まる（defaultShape） */
+  shape?: NodeShape | null
   /** AI の提案（まだマップに入れていない） */
   ghost?: boolean
   /** 枝をたたんでいる（子は配置しない） */
@@ -20,6 +24,8 @@ export interface PlacedNode {
   depth: number
   /** 1: 右へ伸びる / -1: 左へ伸びる / 0: 中心 */
   side: -1 | 0 | 1
+  /** 見た目（中心は使わない） */
+  shape: NodeShape
   /** 左上の位置（中心のテーマの真ん中が原点） */
   x: number
   y: number
@@ -52,14 +58,20 @@ export type Measure = (text: string, font: string) => number
 
 export const MAP_FONT_FAMILY = `system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif`
 
-/** 深さごとの見た目。中心 / テーマのすぐ外（塗った札） / その先（下線） */
-export const NODE_STYLES = [
-  { font: `700 18px ${MAP_FONT_FAMILY}`, fontSize: 18, weight: 700, lineHeight: 24, padX: 18, padY: 12, maxWidth: 200 },
-  { font: `600 15px ${MAP_FONT_FAMILY}`, fontSize: 15, weight: 600, lineHeight: 20, padX: 14, padY: 8, maxWidth: 180 },
-  { font: `500 14px ${MAP_FONT_FAMILY}`, fontSize: 14, weight: 500, lineHeight: 19, padX: 4, padY: 4, maxWidth: 168 },
-] as const
+/** 文字の大きさと余白。中心 / テーマのすぐ外の札 / その先の札 / 下線 */
+const CENTER_STYLE = { font: `700 18px ${MAP_FONT_FAMILY}`, lineHeight: 24, padX: 18, padY: 12, maxWidth: 200 }
+const BRANCH_STYLE = { font: `600 15px ${MAP_FONT_FAMILY}`, lineHeight: 20, padX: 14, padY: 8, maxWidth: 180 }
+const SMALL_STYLE = { font: `600 14px ${MAP_FONT_FAMILY}`, lineHeight: 19, padX: 12, padY: 6, maxWidth: 168 }
+const LINE_STYLE = { font: `500 14px ${MAP_FONT_FAMILY}`, lineHeight: 19, padX: 4, padY: 4, maxWidth: 168 }
 
-export const styleFor = (depth: number) => NODE_STYLES[Math.min(depth, 2)]
+/** 見た目を選んでいない項目の見た目。テーマから2段目までは札、その先は下線 */
+export const defaultShape = (depth: number): NodeShape => (depth <= 2 ? 'filled' : 'line')
+
+export function styleFor(depth: number, shape: NodeShape) {
+  if (depth === 0) return CENTER_STYLE
+  if (shape === 'line') return LINE_STYLE
+  return depth === 1 ? BRANCH_STYLE : SMALL_STYLE
+}
 
 /** 兄弟の間のすき間（縦）と、親から子までの距離（横）。添え字は子の深さ */
 const V_GAP = [0, 22, 10, 6]
@@ -103,6 +115,7 @@ export function wrapText(text: string, maxWidth: number, width: (s: string) => n
 interface Sized {
   node: LayoutNode
   depth: number
+  shape: NodeShape
   width: number
   height: number
   lines: string[]
@@ -112,7 +125,8 @@ interface Sized {
 }
 
 function size(node: LayoutNode, depth: number, measure: Measure): Sized {
-  const style = styleFor(depth)
+  const shape = node.shape ?? defaultShape(depth)
+  const style = styleFor(depth, shape)
   const lines = wrapText(node.title, style.maxWidth, (s) => measure(s, style.font))
   const textWidth = Math.max(...lines.map((l) => measure(l, style.font)))
   const width = Math.ceil(Math.max(textWidth, depth === 0 ? 48 : 16)) + style.padX * 2 + 2
@@ -120,7 +134,7 @@ function size(node: LayoutNode, depth: number, measure: Measure): Sized {
   const kids = node.collapsed ? [] : node.children.map((c) => size(c, depth + 1, measure))
   const gap = gapAt(V_GAP, depth + 1)
   const block = kids.reduce((sum, k) => sum + k.span, 0) + gap * Math.max(0, kids.length - 1)
-  return { node, depth, width, height, lines, kids, span: Math.max(height, block) }
+  return { node, depth, shape, width, height, lines, kids, span: Math.max(height, block) }
 }
 
 /** 3次ベジェ曲線の点 */
@@ -160,6 +174,7 @@ export function layoutMindMap(root: LayoutNode, measure: Measure): MapLayout {
     parentId: null,
     depth: 0,
     side: 0,
+    shape: tree.shape,
     x: -tree.width / 2,
     y: -tree.height / 2,
     width: tree.width,
@@ -177,6 +192,7 @@ export function layoutMindMap(root: LayoutNode, measure: Measure): MapLayout {
       parentId: parent.id,
       depth: item.depth,
       side,
+      shape: item.shape,
       x: side === 1 ? innerX : innerX - item.width,
       y: centerY - item.height / 2,
       width: item.width,
@@ -208,8 +224,10 @@ export function layoutMindMap(root: LayoutNode, measure: Measure): MapLayout {
       const p = [[0, 0], [dx * 0.55, 0], [dx * 0.6, end[1]], end]
       return { from: parent.id, to: child.id, d: taperedPath(p, ghost ? 3 : 9, ghost ? 2 : 3.5), filled: true, width: 0, ghost }
     }
-    const start = [side === 1 ? parent.x + parent.width : parent.x, parent.depth === 1 ? parent.y + parent.height / 2 : parent.y + parent.height]
-    const end = [side === 1 ? child.x : child.x + child.width, child.y + child.height]
+    // 札は真ん中の高さで、下線の項目は下線の高さでつなぐ
+    const anchorY = (n: PlacedNode) => (n.shape === 'line' ? n.y + n.height : n.y + n.height / 2)
+    const start = [side === 1 ? parent.x + parent.width : parent.x, anchorY(parent)]
+    const end = [side === 1 ? child.x : child.x + child.width, anchorY(child)]
     const bend = (end[0] - start[0]) * 0.55
     const p = [start, [start[0] + bend, start[1]], [end[0] - bend * 0.6, end[1]], end]
     return { from: parent.id, to: child.id, d: curve(p.map((pt) => pt.map((v) => +v.toFixed(1)))), filled: false, width: child.depth === 2 ? 2.5 : 2, ghost }

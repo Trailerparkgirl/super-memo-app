@@ -29,13 +29,13 @@ export default function App() {
   return <MainApp />
 }
 
-/** マインドマップのテーブルがあるか（schema.sql を実行したか）。確かめている間は undefined */
+/** マインドマップのテーブルと、あとから足した列があるか（schema.sql を実行したか）。確かめている間は undefined */
 function useSchemaReady(): boolean | undefined {
   const [ready, setReady] = useState<boolean>()
   useEffect(() => {
     supabase
-      .from('maps')
-      .select('id')
+      .from('nodes')
+      .select('id, shape')
       .limit(1)
       // 通信できないときなどは、それぞれの画面でエラーを出す
       .then(({ error }) => setReady(!(error && isMissingSchema(error))))

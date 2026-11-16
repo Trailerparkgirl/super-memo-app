@@ -9,6 +9,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Choose how each map item looks: “Style” in the item’s sheet offers Filled, Outline or Underline.
+  Items two steps from the theme are now filled with their branch color like the ones right next to it; items further out keep the underline.
+  Run `supabase/schema.sql` again to add the `shape` column.
 - Mind maps for what you learn at work and while coding. Each map grows from a central theme: branches spread out radially on both sides and items grow from them, laid out automatically.
   Pick a color for each branch that comes out of the theme; everything further out follows that color.
   Drag with one finger to move around, pinch (or scroll on a computer) to zoom, and tap “Fit” to see the whole map. Collapse branches you don’t need right now.

@@ -281,13 +281,16 @@ function MapItem({
   onSelect: (id: string) => void
   onToggle: (id: string) => void
 }) {
-  const style = styleFor(node.depth)
-  const shape =
-    node.depth === 0
-      ? 'rounded-2xl bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900'
-      : node.depth === 1
-        ? `rounded-full shadow-sm ${node.ghost ? 'bg-white/80 dark:bg-slate-900/80' : 'text-white'}`
-        : `rounded-md ${node.ghost ? 'bg-white/80 dark:bg-slate-900/80' : ''}`
+  const style = styleFor(node.depth, node.shape)
+  const isCenter = node.depth === 0
+  const pill = !isCenter && node.shape !== 'line'
+  const filled = pill && node.shape === 'filled' && !node.ghost
+  const ghostBack = 'bg-white/80 dark:bg-slate-900/80'
+  const shape = isCenter
+    ? 'rounded-2xl bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900'
+    : pill
+      ? `rounded-full shadow-sm ${filled ? 'text-white' : node.ghost ? ghostBack : 'bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100'}`
+      : `rounded-md ${node.ghost ? ghostBack : 'text-slate-800 dark:text-slate-100'}`
   return (
     <>
       <button
@@ -295,7 +298,7 @@ function MapItem({
         aria-pressed={selected}
         title={node.lines.join('')}
         onClick={() => onSelect(node.id)}
-        className={`absolute top-0 left-0 text-left ${shape} ${node.ghost || node.depth < 2 ? '' : 'text-slate-800 dark:text-slate-100'}`}
+        className={`absolute top-0 left-0 text-left ${shape}`}
         style={{
           transform: `translate(${node.x}px, ${node.y}px)`,
           width: node.width,
@@ -304,9 +307,10 @@ function MapItem({
           font: style.font,
           lineHeight: `${style.lineHeight}px`,
           fontFamily: MAP_FONT_FAMILY,
-          background: node.depth === 1 && !node.ghost ? color : undefined,
+          background: filled ? color : undefined,
           color: node.ghost ? color : undefined,
-          outline: selected ? `2.5px solid ${node.depth === 0 ? '#6366f1' : color}` : undefined,
+          boxShadow: pill && node.shape === 'outline' && !node.ghost ? `inset 0 0 0 2px ${color}` : undefined,
+          outline: selected ? `2.5px solid ${isCenter ? '#6366f1' : color}` : undefined,
           outlineOffset: 3,
           opacity: memory !== null && memory < 0.6 ? 0.55 : 1,
         }}
@@ -316,11 +320,11 @@ function MapItem({
             {line}
           </span>
         ))}
-        {node.depth >= 2 && !node.ghost && <span className="absolute inset-x-0 bottom-0 h-[2.5px] rounded-full" style={{ background: color }} />}
+        {!isCenter && !pill && !node.ghost && <span className="absolute inset-x-0 bottom-0 h-[2.5px] rounded-full" style={{ background: color }} />}
         {node.ghost && (
           <>
             <span
-              className={`pointer-events-none absolute inset-0 border-[1.5px] border-dashed ${node.depth === 1 ? 'rounded-full' : 'rounded-md'}`}
+              className={`pointer-events-none absolute inset-0 border-[1.5px] border-dashed ${pill ? 'rounded-full' : 'rounded-md'}`}
               style={{ borderColor: color }}
             />
             <span className="absolute -top-2 -right-2 rounded bg-indigo-600 px-1 text-[9px] leading-[14px] font-bold text-white">AI</span>
