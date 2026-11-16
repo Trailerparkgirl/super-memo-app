@@ -54,7 +54,7 @@ export function CapturePage() {
       const library = await loadLibrary()
       const siblings = buildTree(library.nodes).children(inbox.centerId)
       const now = new Date()
-      const node: MapNode = { id: crypto.randomUUID(), mapId: inbox.mapId, parentId: inbox.centerId, position: nextPosition(siblings), title, definition, color: null, shape: null, createdAt: now, updatedAt: now }
+      const node: MapNode = { id: crypto.randomUUID(), mapId: inbox.mapId, parentId: inbox.centerId, position: nextPosition(siblings), title, definition, color: null, shape: null, offsetX: null, offsetY: null, createdAt: now, updatedAt: now }
       await insertNodes([node])
       await createMissingCards([node], [], true)
       setDone({ message: t.capture.savedToInbox, to: `/maps/${inbox.mapId}?node=${node.id}`, label: t.capture.open(t.maps.inbox) })
@@ -115,6 +115,8 @@ export function CapturePage() {
           definition: p.definition,
           color: parent.parentId === null && !isInbox ? nextBranchColor(siblings.map((s) => s.color)) : null,
           shape: null,
+          offsetX: null,
+          offsetY: null,
           createdAt: now,
           updatedAt: now,
         })

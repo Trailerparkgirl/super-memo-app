@@ -138,6 +138,9 @@ create table if not exists public.nodes (
 
 -- マップでの見た目（filled: 塗った札 / outline: 枠 / line: 下線）。null なら深さで決まる
 alter table public.nodes add column if not exists shape text check (shape in ('filled', 'outline', 'line'));
+-- 手で動かした位置（親の真ん中からこの項目の真ん中まで、マップ上の px）。null なら自動で並べる
+alter table public.nodes add column if not exists offset_x double precision;
+alter table public.nodes add column if not exists offset_y double precision;
 
 create index if not exists nodes_map_idx on public.nodes (map_id);
 create index if not exists nodes_parent_idx on public.nodes (parent_id);
@@ -189,7 +192,8 @@ create policy "own cards" on public.cards
   with check (user_id = (select auth.uid()));
 
 -- 項目を枝ごと別の親の下へ移す（別のマップへも）。子孫の map_id もまとめて変える。
--- 中心は移さない。自分の枝の中へは移さない。security invoker なので本人の項目しか動かせない
+-- 中心は移さない。自分の枝の中へは移さない。手で動かした位置は新しい親では意味がないので、自動の位置に戻す。
+-- security invoker なので本人の項目しか動かせない
 create or replace function public.move_node(node uuid, new_parent uuid, new_position double precision)
 returns void
 language sql
@@ -205,6 +209,8 @@ as $$
     map_id = (select map_id from public.nodes where id = new_parent),
     parent_id = case when id = node then new_parent else parent_id end,
     position = case when id = node then new_position else position end,
+    offset_x = case when id = node then null else offset_x end,
+    offset_y = case when id = node then null else offset_y end,
     updated_at = case when id = node then now() else updated_at end
   where id in (select id from subtree)
     and exists (select 1 from public.nodes where id = new_parent)

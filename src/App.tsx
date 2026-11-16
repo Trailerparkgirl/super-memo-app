@@ -35,7 +35,7 @@ function useSchemaReady(): boolean | undefined {
   useEffect(() => {
     supabase
       .from('nodes')
-      .select('id, shape')
+      .select('id, shape, offset_x')
       .limit(1)
       // 通信できないときなどは、それぞれの画面でエラーを出す
       .then(({ error }) => setReady(!(error && isMissingSchema(error))))

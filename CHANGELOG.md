@@ -9,6 +9,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Move map items where you want them: select an item, then drag it. Its branches move with it, and it stays where you put it relative to the item it grows from (for branches right next to the theme, relative to the theme).
+  A branch moved to the other side of the theme grows toward that side. “Auto position” in the item’s sheet puts it back.
+  Run `supabase/schema.sql` again to add the `offset_x` / `offset_y` columns.
 - Choose how each map item looks: “Style” in the item’s sheet offers Filled, Outline or Underline.
   Items two steps from the theme are now filled with their branch color like the ones right next to it; items further out keep the underline.
   Run `supabase/schema.sql` again to add the `shape` column.

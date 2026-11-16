@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { layoutMindMap, MAP_FONT_FAMILY, styleFor, type LayoutNode, type PlacedNode } from '../lib/radial'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { layoutMindMap, MAP_FONT_FAMILY, styleFor, type LayoutNode, type Offset, type PlacedNode } from '../lib/radial'
 
 /** マップに描く項目。color はその枝の色、memory はいま思い出せる確率（復習カードがなければ null） */
 export interface CanvasNode extends LayoutNode {
@@ -20,6 +20,8 @@ interface Props {
   fitKey: number
   onSelect: (id: string | null) => void
   onToggle: (id: string) => void
+  /** 選んでいる項目を指やマウスで動かしたとき（親の真ん中からの位置）。なければ動かせない */
+  onMoveNode?: (id: string, offset: Offset) => void
 }
 
 // 文字の幅は、画面に描くのと同じフォントで測る
@@ -46,8 +48,10 @@ function memoryColor(memory: number): string {
 }
 
 /** テーマを中心に放射状に広がるマップ。1本指で動かし、2本指（PC はホイール）で拡大縮小する */
-export function MindMapCanvas({ root, selectedId, revealId, showMemory, bottomInset, fitKey, onSelect, onToggle }: Props) {
-  const layout = useMemo(() => layoutMindMap(root, measure), [root])
+export function MindMapCanvas({ root, selectedId, revealId, showMemory, bottomInset, fitKey, onSelect, onToggle, onMoveNode }: Props) {
+  // 動かしている途中の項目と位置（離したら onMoveNode で保存する）
+  const [moving, setMoving] = useState<({ id: string } & Offset) | null>(null)
+  const layout = useMemo(() => layoutMindMap(root, measure, moving), [root, moving])
   const info = useMemo(() => {
     const map = new Map<string, CanvasNode>()
     const walk = (node: CanvasNode) => {
@@ -63,6 +67,13 @@ export function MindMapCanvas({ root, selectedId, revealId, showMemory, bottomIn
   // 画面上の位置 = マップ上の位置 × scale + (x, y)
   const view = useRef({ x: 0, y: 0, scale: 1 })
   const ready = useRef(false)
+  // 指やマウスの処理から、いちばん新しい値を使う
+  const latest = useRef({ layout, selectedId, onMoveNode })
+  useLayoutEffect(() => {
+    latest.current = { layout, selectedId, onMoveNode }
+  })
+  // 項目を動かしている間と、離した直後の描き直しでは、画面を勝手に動かさない
+  const dragging = useRef(false)
 
   const apply = useCallback((animate = false) => {
     const el = world.current
@@ -113,7 +124,7 @@ export function MindMapCanvas({ root, selectedId, revealId, showMemory, bottomIn
   useEffect(() => {
     const el = container.current
     const node = revealId ? layout.nodes.find((n) => n.id === revealId) : undefined
-    if (!el || !node) return
+    if (!el || !node || dragging.current) return
     const isNew = revealed.current !== revealId
     revealed.current = revealId
     const { x, y } = view.current
@@ -132,6 +143,9 @@ export function MindMapCanvas({ root, selectedId, revealId, showMemory, bottomIn
     }
     apply(true)
   }, [revealId, layout, bottomInset, apply])
+  useEffect(() => {
+    if (!moving) dragging.current = false
+  }, [layout]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 指やマウスで動かす・拡大縮小する
   useEffect(() => {
@@ -140,14 +154,37 @@ export function MindMapCanvas({ root, selectedId, revealId, showMemory, bottomIn
     const pointers = new Map<number, { x: number; y: number }>()
     let start: { pointers: Map<number, { x: number; y: number }>; view: { x: number; y: number; scale: number } } | null = null
     let moved = false
+    // 選んでいる項目をつかんだとき：その項目と、つかんだときの位置（親の真ん中から）
+    let grab: { id: string; from: Offset; to: Offset } | null = null
 
     const begin = () => {
       start = { pointers: new Map(pointers), view: { ...view.current } }
     }
+    /** 選んでいる項目（中心と AI の提案は除く）の上で押したら、その項目をつかむ */
+    const grabAt = (target: EventTarget | null) => {
+      const { layout, selectedId, onMoveNode } = latest.current
+      const id = (target as HTMLElement | null)?.closest<HTMLElement>('[data-node]')?.dataset.node
+      const node = id && id === selectedId && onMoveNode ? layout.nodes.find((n) => n.id === id) : undefined
+      const parent = node && layout.nodes.find((n) => n.id === node.parentId)
+      if (!node || !parent || node.ghost) return null
+      const from = {
+        x: node.x + node.width / 2 - (parent.x + parent.width / 2),
+        y: node.y + node.height / 2 - (parent.y + parent.height / 2),
+      }
+      return { id: node.id, from, to: from }
+    }
     const onDown = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (pointers.size === 1) moved = false
+      if (pointers.size === 1) {
+        moved = false
+        grab = grabAt(e.target)
+      } else if (grab) {
+        // 2本目の指が来たら、項目は元の位置に戻して拡大縮小にする
+        grab = null
+        dragging.current = false
+        setMoving(null)
+      }
       begin()
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
@@ -163,6 +200,13 @@ export function MindMapCanvas({ root, selectedId, revealId, showMemory, bottomIn
         const dy = a.y - a0.y
         if (!moved && Math.hypot(dx, dy) < 6) return
         moved = true
+        if (grab) {
+          const scale = start.view.scale
+          grab.to = { x: Math.round(grab.from.x + dx / scale), y: Math.round(grab.from.y + dy / scale) }
+          dragging.current = true
+          setMoving({ id: grab.id, ...grab.to })
+          return
+        }
         view.current = { ...start.view, x: start.view.x + dx, y: start.view.y + dy }
       } else if (a && b && a0 && b0) {
         moved = true
@@ -180,6 +224,9 @@ export function MindMapCanvas({ root, selectedId, revealId, showMemory, bottomIn
     const onUp = (e: PointerEvent) => {
       pointers.delete(e.pointerId)
       if (pointers.size === 0) {
+        if (grab && moved) latest.current.onMoveNode?.(grab.id, grab.to)
+        grab = null
+        setMoving(null)
         start = null
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
@@ -297,6 +344,7 @@ function MapItem({
         type="button"
         aria-pressed={selected}
         title={node.lines.join('')}
+        data-node={node.id}
         onClick={() => onSelect(node.id)}
         className={`absolute top-0 left-0 text-left ${shape}`}
         style={{

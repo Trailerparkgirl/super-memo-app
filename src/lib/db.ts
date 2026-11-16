@@ -54,6 +54,9 @@ export interface MapNode {
   color: string | null
   /** マップでの見た目。null なら深さで決まる（defaultShape） */
   shape: NodeShape | null
+  /** 手で動かした位置（親の真ん中からこの項目の真ん中まで、マップ上の px）。null なら自動で並べる */
+  offsetX: number | null
+  offsetY: number | null
   createdAt: Date
   updatedAt: Date
 }
@@ -120,6 +123,8 @@ export interface NodeRow {
   definition: string
   color: string | null
   shape: NodeShape | null
+  offset_x: number | null
+  offset_y: number | null
   created_at: string
   updated_at: string
 }
@@ -205,6 +210,8 @@ export function nodeFromRow(row: NodeRow): MapNode {
     definition: row.definition,
     color: row.color,
     shape: row.shape ?? null,
+    offsetX: row.offset_x ?? null,
+    offsetY: row.offset_y ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   }
@@ -220,6 +227,8 @@ export function nodeToRow(node: MapNode): NodeRow {
     definition: node.definition,
     color: node.color,
     shape: node.shape,
+    offset_x: node.offsetX,
+    offset_y: node.offsetY,
     created_at: node.createdAt.toISOString(),
     updated_at: node.updatedAt.toISOString(),
   }

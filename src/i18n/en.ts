@@ -113,6 +113,8 @@ export const en: Messages = {
     color: 'Branch color',
     shape: 'Style',
     shapes: { filled: 'Filled', outline: 'Outline', line: 'Underline' },
+    dragHint: 'Drag the selected item on the map to move it with its branches.',
+    autoPlace: 'Auto position',
     addBranch: '+ Add branch',
     addPlaceholder: (title) => `Branch from “${title}”`,
     add: 'Add',

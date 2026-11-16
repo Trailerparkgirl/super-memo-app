@@ -19,7 +19,7 @@ import { endOfDay, newCard } from './scheduler'
 import { notifyChange } from './useData'
 
 const MAP_COLUMNS = 'id, kind, created_at'
-const NODE_COLUMNS = 'id, map_id, parent_id, position, title, definition, color, shape, created_at, updated_at'
+const NODE_COLUMNS = 'id, map_id, parent_id, position, title, definition, color, shape, offset_x, offset_y, created_at, updated_at'
 const CARD_COLUMNS = 'id, node_id, kind, card, due'
 
 // ---- 読み込み ----
@@ -100,8 +100,12 @@ export async function insertNodes(nodes: MapNode[]) {
   notifyChange()
 }
 
-export async function updateNode(id: string, patch: Partial<Pick<MapNode, 'title' | 'definition' | 'color' | 'shape'>>) {
-  await run(supabase.from('nodes').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id))
+export async function updateNode(id: string, patch: Partial<Pick<MapNode, 'title' | 'definition' | 'color' | 'shape' | 'offsetX' | 'offsetY'>>) {
+  const { offsetX, offsetY, ...rest } = patch
+  const row: Partial<NodeRow> = { ...rest, updated_at: new Date().toISOString() }
+  if (offsetX !== undefined) row.offset_x = offsetX
+  if (offsetY !== undefined) row.offset_y = offsetY
+  await run(supabase.from('nodes').update(row).eq('id', id))
   notifyChange()
 }
 

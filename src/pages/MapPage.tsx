@@ -161,6 +161,8 @@ function MapEditor({ initial }: { initial: MapData }) {
         definition: '',
         color,
         shape: null,
+        offsetX: null,
+        offsetY: null,
         createdAt: now,
         updatedAt: now,
       }
@@ -205,7 +207,7 @@ function MapEditor({ initial }: { initial: MapData }) {
     addChildren(parent, titles, false)
   }
 
-  function changeNode(id: string, patch: Partial<Pick<MapNode, 'title' | 'definition' | 'color' | 'shape'>>) {
+  function changeNode(id: string, patch: Partial<Pick<MapNode, 'title' | 'definition' | 'color' | 'shape' | 'offsetX' | 'offsetY'>>) {
     setLatestNodes(latest.current.nodes.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: new Date() } : n)))
     write(async () => {
       await updateNode(id, patch)
@@ -227,7 +229,7 @@ function MapEditor({ initial }: { initial: MapData }) {
     if (parent.id === node.parentId) return
     if (parent.mapId === map.id) {
       const position = nextPosition(tree.children(parent.id))
-      setLatestNodes(latest.current.nodes.map((n) => (n.id === node.id ? { ...n, parentId: parent.id, position } : n)))
+      setLatestNodes(latest.current.nodes.map((n) => (n.id === node.id ? { ...n, parentId: parent.id, position, offsetX: null, offsetY: null } : n)))
       setRevealId(node.id)
       if (await write(() => moveNode(node.id, parent.id, position))) await syncCards()
       return
@@ -286,6 +288,7 @@ function MapEditor({ initial }: { initial: MapData }) {
         color: node.parentId === null ? '#6366f1' : tree.color(node.id),
         memory: memoryOf(node.id),
         shape: node.shape,
+        offset: node.offsetX !== null && node.offsetY !== null ? { x: node.offsetX, y: node.offsetY } : null,
         collapsed: collapsed.has(node.id),
         children,
       }
@@ -355,6 +358,7 @@ function MapEditor({ initial }: { initial: MapData }) {
                 return next
               })
             }
+            onMoveNode={(id, offset) => changeNode(id, { offsetX: offset.x, offsetY: offset.y })}
           />
         )}
 
@@ -467,7 +471,7 @@ function NodeSheet({
   collapsed: boolean
   siblings: string[]
   childTitles: string[]
-  onChange: (patch: Partial<Pick<MapNode, 'title' | 'definition' | 'color' | 'shape'>>) => void
+  onChange: (patch: Partial<Pick<MapNode, 'title' | 'definition' | 'color' | 'shape' | 'offsetX' | 'offsetY'>>) => void
   onAdd: (title: string) => void
   onSuggest: () => void
   onMove: () => void
@@ -608,6 +612,14 @@ function NodeSheet({
                 </button>
               )
             })}
+          </div>
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t.map.dragHint}</p>
+            {node.offsetX !== null && (
+              <button onClick={() => onChange({ offsetX: null, offsetY: null })} className="shrink-0 text-sm font-semibold text-indigo-600 dark:text-indigo-300">
+                {t.map.autoPlace}
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
 // ---- マインドマップの配置 ----
 // 中心のテーマから放射状に枝を出す。テーマのすぐ外の枝を左右に分け（右は上から下へ、左は下から上へ。時計回りに並ぶ）、
 // その先は外へ向かって伸ばす。位置は毎回ここで決めるので、データベースには保存しない。
+// ただし手で動かした項目（offset）は、親の真ん中からの位置に置く。その先の枝はそこから自動で伸ばす。
 // 文字の幅は画面と同じフォントで測る（measure）ので、項目どうしは重ならない。
 
 import type { NodeShape } from './db'
@@ -15,6 +16,13 @@ export interface LayoutNode {
   ghost?: boolean
   /** 枝をたたんでいる（子は配置しない） */
   collapsed?: boolean
+  /** 手で動かした位置（親の真ん中からこの項目の真ん中まで）。なければ自動で並べる */
+  offset?: Offset | null
+}
+
+export interface Offset {
+  x: number
+  y: number
 }
 
 export interface PlacedNode {
@@ -120,21 +128,28 @@ interface Sized {
   height: number
   lines: string[]
   kids: Sized[]
+  /** 手で動かした位置 */
+  offset: Offset | null
   /** その項目と子孫が縦に使う高さ */
   span: number
 }
 
-function size(node: LayoutNode, depth: number, measure: Measure): Sized {
+/** 自動で縦に並べる子（手で動かした子は並びに入れない）と、その高さ */
+function column(kids: Sized[], gap: number): { kids: Sized[]; block: number } {
+  const auto = kids.filter((k) => !k.offset)
+  return { kids: auto, block: auto.reduce((sum, k) => sum + k.span, 0) + gap * Math.max(0, auto.length - 1) }
+}
+
+function size(node: LayoutNode, depth: number, measure: Measure, offsetOf: (node: LayoutNode) => Offset | null): Sized {
   const shape = node.shape ?? defaultShape(depth)
   const style = styleFor(depth, shape)
   const lines = wrapText(node.title, style.maxWidth, (s) => measure(s, style.font))
   const textWidth = Math.max(...lines.map((l) => measure(l, style.font)))
   const width = Math.ceil(Math.max(textWidth, depth === 0 ? 48 : 16)) + style.padX * 2 + 2
   const height = lines.length * style.lineHeight + style.padY * 2
-  const kids = node.collapsed ? [] : node.children.map((c) => size(c, depth + 1, measure))
-  const gap = gapAt(V_GAP, depth + 1)
-  const block = kids.reduce((sum, k) => sum + k.span, 0) + gap * Math.max(0, kids.length - 1)
-  return { node, depth, shape, width, height, lines, kids, span: Math.max(height, block) }
+  const kids = node.collapsed ? [] : node.children.map((c) => size(c, depth + 1, measure, offsetOf))
+  const { block } = column(kids, gapAt(V_GAP, depth + 1))
+  return { node, depth, shape, width, height, lines, kids, offset: depth === 0 ? null : offsetOf(node), span: Math.max(height, block) }
 }
 
 /** 3次ベジェ曲線の点 */
@@ -164,8 +179,10 @@ function taperedPath(p: number[][], startWidth: number, endWidth: number): strin
 
 const curve = (p: number[][]) => `M${p[0].join(' ')} C${p[1].join(' ')} ${p[2].join(' ')} ${p[3].join(' ')}`
 
-export function layoutMindMap(root: LayoutNode, measure: Measure): MapLayout {
-  const tree = size(root, 0, measure)
+/** moving は動かしている途中の項目（保存した位置の代わりに使う） */
+export function layoutMindMap(root: LayoutNode, measure: Measure, moving?: ({ id: string } & Offset) | null): MapLayout {
+  const offsetOf = (node: LayoutNode): Offset | null => (moving?.id === node.id ? moving : (node.offset ?? null))
+  const tree = size(root, 0, measure, offsetOf)
   const nodes: PlacedNode[] = []
   const edges: PlacedEdge[] = []
 
@@ -185,8 +202,13 @@ export function layoutMindMap(root: LayoutNode, measure: Measure): MapLayout {
   }
   nodes.push(center)
 
-  /** 項目を置き、その子を外側へ縦に並べる。innerX は親に近い側の端 */
+  /** 項目を置き、その子を外側へ縦に並べる。innerX は親に近い側の端。手で動かした項目は親の真ん中からの位置に置く */
   function place(item: Sized, parent: PlacedNode, side: 1 | -1, innerX: number, centerY: number): PlacedNode {
+    if (item.offset) {
+      const x = parent.x + parent.width / 2 + item.offset.x
+      centerY = parent.y + parent.height / 2 + item.offset.y
+      innerX = side === 1 ? x - item.width / 2 : x + item.width / 2
+    }
     const placed: PlacedNode = {
       id: item.node.id,
       parentId: parent.id,
@@ -205,13 +227,14 @@ export function layoutMindMap(root: LayoutNode, measure: Measure): MapLayout {
     edges.push(edge(parent, placed, side))
 
     const gap = gapAt(V_GAP, item.depth + 1)
-    const block = item.kids.reduce((sum, k) => sum + k.span, 0) + gap * Math.max(0, item.kids.length - 1)
+    const { kids, block } = column(item.kids, gap)
     let top = centerY - block / 2
     const outerX = side === 1 ? placed.x + placed.width : placed.x
-    for (const kid of item.kids) {
+    for (const kid of kids) {
       place(kid, placed, side, outerX + side * gapAt(H_GAP, kid.depth), top + kid.span / 2)
       top += kid.span + gap
     }
+    for (const kid of item.kids) if (kid.offset) place(kid, placed, side, 0, 0)
     return placed
   }
 
@@ -233,12 +256,13 @@ export function layoutMindMap(root: LayoutNode, measure: Measure): MapLayout {
     return { from: parent.id, to: child.id, d: curve(p.map((pt) => pt.map((v) => +v.toFixed(1)))), filled: false, width: child.depth === 2 ? 2.5 : 2, ghost }
   }
 
-  // テーマのすぐ外の枝を、縦の長さが半分ずつになるように右と左へ分ける
-  const total = tree.kids.reduce((sum, k) => sum + k.span, 0)
+  // テーマのすぐ外の枝を、縦の長さが半分ずつになるように右と左へ分ける（手で動かした枝は除く）
+  const auto = tree.kids.filter((k) => !k.offset)
+  const total = auto.reduce((sum, k) => sum + k.span, 0)
   const right: Sized[] = []
   const left: Sized[] = []
   let used = 0
-  for (const kid of tree.kids) {
+  for (const kid of auto) {
     if (right.length === 0 || (used + kid.span / 2 <= total / 2 && left.length === 0)) {
       right.push(kid)
       used += kid.span
@@ -259,6 +283,8 @@ export function layoutMindMap(root: LayoutNode, measure: Measure): MapLayout {
       top += kid.span + gap
     }
   }
+  // 手で動かした枝は、テーマより右にあれば右へ、左にあれば左へ伸ばす
+  for (const kid of tree.kids) if (kid.offset) place(kid, center, kid.offset.x >= 0 ? 1 : -1, 0, 0)
 
   const bounds = {
     minX: Math.min(...nodes.map((n) => n.x)),
