@@ -111,6 +111,8 @@ export const en: Messages = {
     aiDefinition: '✨ Write with AI',
     writing: 'Writing a definition…',
     color: 'Branch color',
+    shape: 'Style',
+    shapes: { filled: 'Filled', outline: 'Outline', line: 'Underline' },
     addBranch: '+ Add branch',
     addPlaceholder: (title) => `Branch from “${title}”`,
     add: 'Add',

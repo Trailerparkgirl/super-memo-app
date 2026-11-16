@@ -5,8 +5,9 @@ import { MovePicker } from '../components/MovePicker'
 import { useI18n } from '../i18n'
 import { aiErrorMessage, suggestBranches, writeDefinition } from '../lib/ai'
 import { BRANCH_COLOR_KEYS, BRANCH_COLORS, nextBranchColor, type BranchColor } from '../lib/branchColors'
-import type { MapNode, MindMap, NodeCard } from '../lib/db'
+import type { MapNode, MindMap, NodeCard, NodeShape } from '../lib/db'
 import { createMissingCards, deleteMap, deleteNode, insertNodes, loadMap, moveNode, updateNode } from '../lib/maps'
+import { defaultShape } from '../lib/radial'
 import { daysUntil, retrievability } from '../lib/scheduler'
 import { load, save } from '../lib/storage'
 import { buildTree, nextPosition } from '../lib/tree'
@@ -22,6 +23,8 @@ interface MapData {
 const GHOST = 'ghost:'
 // 「記憶」の表示をこの端末で覚えておく
 const MEMORY_KEY = 'super-memo:map-memory'
+// 項目の見た目の選択肢
+const SHAPES: NodeShape[] = ['filled', 'outline', 'line']
 
 export function MapPage() {
   const { id = '' } = useParams()
@@ -157,6 +160,7 @@ function MapEditor({ initial }: { initial: MapData }) {
         title,
         definition: '',
         color,
+        shape: null,
         createdAt: now,
         updatedAt: now,
       }
@@ -201,7 +205,7 @@ function MapEditor({ initial }: { initial: MapData }) {
     addChildren(parent, titles, false)
   }
 
-  function changeNode(id: string, patch: Partial<Pick<MapNode, 'title' | 'definition' | 'color'>>) {
+  function changeNode(id: string, patch: Partial<Pick<MapNode, 'title' | 'definition' | 'color' | 'shape'>>) {
     setLatestNodes(latest.current.nodes.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: new Date() } : n)))
     write(async () => {
       await updateNode(id, patch)
@@ -281,6 +285,7 @@ function MapEditor({ initial }: { initial: MapData }) {
         title: titleOf(node),
         color: node.parentId === null ? '#6366f1' : tree.color(node.id),
         memory: memoryOf(node.id),
+        shape: node.shape,
         collapsed: collapsed.has(node.id),
         children,
       }
@@ -371,6 +376,7 @@ function MapEditor({ initial }: { initial: MapData }) {
               node={selected}
               path={tree.path(selected.id).map(titleOf)}
               depth={tree.depth(selected.id)}
+              color={tree.color(selected.id)}
               childCount={tree.children(selected.id).length}
               cards={cards.filter((c) => c.nodeId === selected.id)}
               isInbox={isInbox}
@@ -435,6 +441,7 @@ function NodeSheet({
   node,
   path,
   depth,
+  color,
   childCount,
   cards,
   isInbox,
@@ -452,13 +459,15 @@ function NodeSheet({
   node: MapNode
   path: string[]
   depth: number
+  /** その項目がある枝の色 */
+  color: string
   childCount: number
   cards: NodeCard[]
   isInbox: boolean
   collapsed: boolean
   siblings: string[]
   childTitles: string[]
-  onChange: (patch: Partial<Pick<MapNode, 'title' | 'definition' | 'color'>>) => void
+  onChange: (patch: Partial<Pick<MapNode, 'title' | 'definition' | 'color' | 'shape'>>) => void
   onAdd: (title: string) => void
   onSuggest: () => void
   onMove: () => void
@@ -569,6 +578,36 @@ function NodeSheet({
                 style={{ background: BRANCH_COLORS[key] }}
               />
             ))}
+          </div>
+        </div>
+      )}
+
+      {!isCenter && (
+        <div className="space-y-1.5">
+          <span className="text-sm font-semibold">{t.map.shape}</span>
+          <div className="flex flex-wrap gap-2">
+            {SHAPES.map((shape) => {
+              const current = (node.shape ?? defaultShape(depth)) === shape
+              return (
+                <button
+                  key={shape}
+                  onClick={() => onChange({ shape })}
+                  aria-pressed={current}
+                  className={`rounded-xl p-1.5 ${current ? 'ring-2 ring-slate-900 dark:ring-white' : ''}`}
+                >
+                  <span
+                    className={`block px-3 py-1 text-sm font-semibold ${shape === 'line' ? 'rounded-sm border-b-[2.5px]' : 'rounded-full'} ${shape === 'filled' ? 'text-white' : ''}`}
+                    style={{
+                      background: shape === 'filled' ? color : undefined,
+                      boxShadow: shape === 'outline' ? `inset 0 0 0 2px ${color}` : undefined,
+                      borderColor: color,
+                    }}
+                  >
+                    {t.map.shapes[shape]}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
       )}

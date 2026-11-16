@@ -31,8 +31,8 @@ export function chunks<T>(items: T[], size: number): T[][] {
   return Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size))
 }
 
-/** テーブルや関数がまだない（schema.sql を実行していない）ときのエラーか */
+/** テーブルや列や関数がまだない（schema.sql を実行していない）ときのエラーか */
 export function isMissingSchema(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code
-  return code === 'PGRST205' || code === 'PGRST202' || code === '42P01' || code === '42883'
+  return code === 'PGRST205' || code === 'PGRST202' || code === '42P01' || code === '42703' || code === '42883'
 }

@@ -111,6 +111,8 @@ export const ja = {
     aiDefinition: '✨ AI で定義を作る',
     writing: '定義を考えています…',
     color: '枝の色',
+    shape: '見た目',
+    shapes: { filled: '塗り', outline: '枠', line: '下線' },
     addBranch: '＋ 枝を追加',
     addPlaceholder: (title: string) => `「${title}」から伸ばす枝`,
     add: '追加',

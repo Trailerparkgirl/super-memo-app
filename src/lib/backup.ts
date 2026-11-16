@@ -72,7 +72,7 @@ export async function importBackup(file: File, inboxTitle: string): Promise<numb
   const words = memos.filter((m) => m.type === 'word')
   const notes = memos.filter((m) => m.type !== 'word')
   let maps: MindMap[] = (data.maps ?? []).map((m) => ({ ...m, createdAt: new Date(m.createdAt) }))
-  let nodes: MapNode[] = (data.nodes ?? []).map((n) => ({ ...n, createdAt: new Date(n.createdAt), updatedAt: new Date(n.updatedAt) }))
+  let nodes: MapNode[] = (data.nodes ?? []).map((n) => ({ ...n, shape: n.shape ?? null, createdAt: new Date(n.createdAt), updatedAt: new Date(n.updatedAt) }))
   const cards: NodeCard[] = (data.cards ?? []).map((c) => {
     const card = reviveCard(c.card)
     return { ...c, card, due: card.due.getTime() }
@@ -107,6 +107,7 @@ export async function importBackup(file: File, inboxTitle: string): Promise<numb
         title: memo.title,
         definition: memo.body,
         color: null,
+        shape: null,
         createdAt: memo.createdAt,
         updatedAt: memo.updatedAt,
       })
