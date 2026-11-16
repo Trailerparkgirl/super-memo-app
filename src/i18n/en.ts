@@ -131,7 +131,8 @@ export const en: Messages = {
       n > 0 ? `Delete “${title}” and the ${plural(n, 'item')} beyond it? Their review history will be deleted too.` : `Delete “${title}”?`,
     nextReview: (when) => `Next review: ${when}`,
     memoryOf: (percent) => `Memory ${percent}%`,
-    newCards: 'Items with a definition, and items with two or more branches, come up for review from tomorrow',
+    newCards: 'Items with a definition come up for review from tomorrow',
+    newMapCard: 'Once it has a branch, the whole map comes up for review from tomorrow',
     moveTitle: (title) => `Move “${title}” to…`,
     moveSearch: 'Search for a place',
     aiPlace: '✨ Ask AI where it goes',
@@ -160,6 +161,10 @@ export const en: Messages = {
   },
 
   mapReview: {
+    recallMap: 'Go through every item on the map and recall what it means. Definitions are hidden.',
+    doneMap: 'I went through the whole map',
+    howEasyMap: 'How easily did you recall the map?',
+    wholeMap: 'Whole map',
     recallDefinition: 'Try to recall the definition.',
     recallChildren: (n) => `Try to recall the ${n === 1 ? '1 branch' : `${n} branches`} growing out of this item.`,
     definition: 'Definition',
@@ -324,7 +329,7 @@ export const en: Messages = {
     wordsAdded: (added, skipped) => `Added ${plural(added, 'word')}${skipped > 0 ? ` (skipped ${plural(skipped, 'duplicate')})` : ''}`,
     howTitle: 'How reviews work',
     howBody:
-      'When you give a map item a definition, it gets a “definition” review card; when it has two or more branches, it gets a “branches” card. The first review comes the next day (for words, the day after you add them). After that, each review is scheduled based on how well you remembered — right before you’d start forgetting (about 90% recall). The better you know it, the longer the gap: 3 days → 1 week → 1 month…; if you forgot, it shrinks again.',
+      'Each map is reviewed as a whole: once it has a branch, you go through the whole map (definitions hidden) and rate how easily you recalled it. In the Inbox, each item with a definition is reviewed on its own. The first review comes the next day (for words, the day after you add them). After that, each review is scheduled based on how well you remembered — right before you’d start forgetting (about 90% recall). The better you know it, the longer the gap: 3 days → 1 week → 1 month…; if you forgot, it shrinks again.',
     algorithm: 'Algorithm: FSRS (an improved SuperMemo-style scheduler)',
   },
 }

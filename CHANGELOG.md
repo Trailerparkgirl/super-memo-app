@@ -9,6 +9,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Review a whole map at once: each map with at least one branch is now one review item. The review shows the whole map with item names only (definitions are hidden); go through it, tap “I went through the whole map”, and rate how easily you recalled it.
+  This replaces the per-item “definition” and “branches” cards on maps. The Inbox keeps a “definition” card per item.
+  Run `supabase/schema.sql` again: it gives every map with branches a map card you can review today, moves the review history of the old item cards onto it (your streak continues), and removes the old item cards.
 - Move map items where you want them: select an item, then drag it. Its branches move with it, and it stays where you put it relative to the item it grows from (for branches right next to the theme, relative to the theme).
   A branch moved to the other side of the theme grows toward that side. “Auto position” in the item’s sheet puts it back.
   Run `supabase/schema.sql` again to add the `offset_x` / `offset_y` columns.

@@ -125,17 +125,17 @@ export async function moveNode(id: string, newParentId: string, position: number
 
 /**
  * マップの今の形から、まだない復習カードを作って返す（翌日から復習に出る）。
- * 定義のある項目は「定義」、枝が2つ以上ある項目は「枝」のカード。受信箱は寄せ集めなので「枝」のカードは作らない。
+ * マップは、枝が1つでもあれば中心に「マップ」カードを1枚（マップ全体を復習する）。
+ * 受信箱は寄せ集めなので、定義のある項目ごとに「定義」カード。
  */
 export async function createMissingCards(nodes: MapNode[], cards: NodeCard[], isInbox: boolean): Promise<NodeCard[]> {
   const have = new Set(cards.map((c) => `${c.nodeId}:${c.kind}`))
-  const childCounts = new Map<string, number>()
-  for (const node of nodes) if (node.parentId) childCounts.set(node.parentId, (childCounts.get(node.parentId) ?? 0) + 1)
-
   const wanted: { nodeId: string; kind: CardKind }[] = []
-  for (const node of nodes) {
-    if (node.definition.trim() && !have.has(`${node.id}:explain`)) wanted.push({ nodeId: node.id, kind: 'explain' })
-    if (!isInbox && (childCounts.get(node.id) ?? 0) >= 2 && !have.has(`${node.id}:children`)) wanted.push({ nodeId: node.id, kind: 'children' })
+  if (isInbox) {
+    for (const node of nodes) if (node.definition.trim() && !have.has(`${node.id}:explain`)) wanted.push({ nodeId: node.id, kind: 'explain' })
+  } else {
+    const center = nodes.find((n) => n.parentId === null)
+    if (center && nodes.some((n) => n.parentId === center.id) && !have.has(`${center.id}:map`)) wanted.push({ nodeId: center.id, kind: 'map' })
   }
   if (wanted.length === 0) return []
 

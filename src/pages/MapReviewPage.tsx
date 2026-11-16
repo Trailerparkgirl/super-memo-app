@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Rating, type Grade } from 'ts-fsrs'
+import { MindMapCanvas } from '../components/MindMapCanvas'
 import { useI18n } from '../i18n'
 import { aiErrorMessage, gradeAnswer, type Grading } from '../lib/ai'
 import { loadLibrary, recordCardReview, undoCardReview } from '../lib/maps'
@@ -40,6 +41,8 @@ export function MapReviewPage() {
   // 話して（書いて）答えたものと、AI の採点
   const [answer, setAnswer] = useState('')
   const [grading, setGrading] = useState<{ busy: boolean; result: Grading | null; error: string }>({ busy: false, result: null, error: '' })
+  // マップの復習で「全体」を押したら、マップ全体が画面に入るようにする
+  const [fitKey, setFitKey] = useState(0)
 
   useEffect(() => {
     loadLibrary().then((library) => {
@@ -185,6 +188,91 @@ export function MapReviewPage() {
         >
           {t.review.backHome}
         </Link>
+      </div>
+    )
+  }
+
+  if (item.map) {
+    return (
+      <div className="flex min-h-[calc(100dvh-2rem)] flex-col gap-4">
+        <header className="flex items-center justify-between">
+          <button onClick={() => navigate('/')} className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+            {t.review.quit}
+          </button>
+          <div className="flex items-center gap-4">
+            {undoButton}
+            <span className="text-sm tabular-nums text-slate-500">{retrying ? t.review.retryLeft(retry.length) : `${index + 1} / ${queue.length}`}</span>
+          </div>
+        </header>
+        <div className="h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+          <div className="h-full bg-indigo-500 transition-all" style={{ width: `${Math.min(1, index / queue.length) * 100}%` }} />
+        </div>
+
+        <article className="flex flex-1 flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="min-w-0 truncate text-lg font-bold">{item.node.title}</h2>
+            <div className="flex shrink-0 items-center gap-3 text-sm">
+              <button onClick={() => setFitKey((k) => k + 1)} className="text-slate-600 dark:text-slate-300">
+                {t.map.fit}
+              </button>
+              <Link to={`/maps/${item.node.mapId}`} className="text-indigo-600 dark:text-indigo-300">
+                {t.mapReview.openMap}
+              </Link>
+            </div>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t.mapReview.recallMap}</p>
+          {/* 項目の名前だけを描き、定義は出さない。項目を押しても何も開かない */}
+          <div className="relative min-h-[50dvh] flex-1 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-950">
+            <div className="absolute inset-0">
+              <MindMapCanvas
+                key={item.card.id}
+                root={item.map}
+                selectedId={null}
+                revealId={null}
+                showMemory={false}
+                bottomInset={0}
+                fitKey={fitKey}
+                onSelect={() => {}}
+                onToggle={() => {}}
+              />
+            </div>
+          </div>
+        </article>
+
+        <div className="pb-[env(safe-area-inset-bottom)]">
+          {retrying && revealed ? (
+            <>
+              <p className="mb-2 text-center text-xs text-slate-500">{t.review.retryHint}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => answerRetry(false)} className="rounded-xl bg-rose-500 py-4 text-sm font-semibold text-white active:opacity-80">
+                  {t.review.stillForgot}
+                </button>
+                <button onClick={() => answerRetry(true)} className="rounded-xl bg-emerald-500 py-4 text-sm font-semibold text-white active:opacity-80">
+                  {t.review.gotIt}
+                </button>
+              </div>
+            </>
+          ) : outcomes ? (
+            <>
+              {overdueDays(item.card.card) > 0 && (
+                <p className="mb-1 text-center text-xs text-amber-600 dark:text-amber-400">{t.review.overdue(overdueDays(item.card.card))}</p>
+              )}
+              <p className="mb-2 text-center text-xs text-slate-500">{t.mapReview.howEasyMap}</p>
+              <div className="grid grid-cols-4 gap-2">
+                {GRADES.map(({ grade, key, color }) => (
+                  <button key={grade} disabled={saving} onClick={() => rate(grade)} className={`${color} flex flex-col items-center rounded-xl py-3 text-white active:opacity-80`}>
+                    <span className="text-sm font-semibold">{t.grades[key]}</span>
+                    <span className="text-xs opacity-90">{t.interval(outcomes[grade].card.scheduled_days)}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <button onClick={() => setRevealed(true)} className="w-full rounded-xl bg-indigo-600 py-4 font-semibold text-white">
+              {t.mapReview.doneMap}
+            </button>
+          )}
+        </div>
       </div>
     )
   }
