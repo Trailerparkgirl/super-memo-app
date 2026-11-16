@@ -113,6 +113,8 @@ export const ja = {
     color: '枝の色',
     shape: '見た目',
     shapes: { filled: '塗り', outline: '枠', line: '下線' },
+    dragHint: '選んだ項目は、マップの上でドラッグすると枝ごと動かせます。',
+    autoPlace: '自動の位置に戻す',
     addBranch: '＋ 枝を追加',
     addPlaceholder: (title: string) => `「${title}」から伸ばす枝`,
     add: '追加',
