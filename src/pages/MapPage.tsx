@@ -546,7 +546,7 @@ function NodeSheet({
             const memory = retrievability(c.card, now)
             return (
               <span key={c.id} className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {c.kind === 'explain' ? t.mapReview.definition : t.mapReview.branches} · {t.map.nextReview(t.daysFromNow(daysUntil(c.due, now)))}
+                {c.kind === 'map' ? t.mapReview.wholeMap : c.kind === 'explain' ? t.mapReview.definition : t.mapReview.branches} · {t.map.nextReview(t.daysFromNow(daysUntil(c.due, now)))}
                 {memory !== null && ` · ${t.map.memoryOf(Math.round(memory * 100))}`}
               </span>
             )
@@ -677,7 +677,7 @@ function NodeSheet({
           )}
         </div>
       )}
-      {cards.length === 0 && !isCenter && <p className="text-xs text-slate-400">{t.map.newCards}</p>}
+      {cards.length === 0 && (isInbox ? !isCenter : isCenter) && <p className="text-xs text-slate-400">{isInbox ? t.map.newCards : t.map.newMapCard}</p>}
     </section>
   )
 }

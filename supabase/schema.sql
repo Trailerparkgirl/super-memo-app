@@ -146,12 +146,13 @@ create index if not exists nodes_map_idx on public.nodes (map_id);
 create index if not exists nodes_parent_idx on public.nodes (parent_id);
 create unique index if not exists nodes_one_center_idx on public.nodes (map_id) where parent_id is null;
 
--- 復習カード。explain: 定義を思い出す / children: 枝（子の項目）を思い出す。1つの項目に種類ごとに1枚
+-- 復習カード。map: マップ全体を思い出す（マップの中心につける） / explain: 定義を思い出す（受信箱の項目） /
+-- children: 枝（子の項目）を思い出す（以前のもの。もう作らない）。1つの項目に種類ごとに1枚
 create table if not exists public.cards (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users on delete cascade,
   node_id uuid not null references public.nodes on delete cascade,
-  kind text not null check (kind in ('explain', 'children')),
+  kind text not null check (kind in ('map', 'explain', 'children')),
   -- ts-fsrs の Card をそのまま保存する（memos.card と同じ）
   card jsonb not null,
   -- card.due と同じ値（検索・並び替え用）
@@ -161,6 +162,10 @@ create table if not exists public.cards (
 );
 
 create index if not exists cards_user_due_idx on public.cards (user_id, due);
+
+-- 「マップ」カードを足す前に作ったテーブルの制約を新しくする
+alter table public.cards drop constraint if exists cards_kind_check;
+alter table public.cards add constraint cards_kind_check check (kind in ('map', 'explain', 'children'));
 
 -- 復習の記録は、単語なら memo_id、マップなら card_id のどちらか一方を持つ
 alter table public.review_logs add column if not exists card_id uuid references public.cards on delete cascade;
@@ -250,3 +255,34 @@ where m.id = l.memo_id and m.type in ('note', 'qa')
 
 delete from public.memos m
 where m.type in ('note', 'qa') and exists (select 1 from public.cards c where c.id = m.id);
+
+-- マップは項目ごとではなく、マップ全体を1枚の「マップ」カードで復習する（受信箱は項目ごとの「定義」カードのまま）。
+-- 枝のあるマップに「マップ」カードを作り（今日から復習できる）、項目ごとのカードの復習の記録をそのカードに移してから、
+-- 項目ごとのカードを消す。記録を移すので、連続記録は途切れない。何度実行しても大丈夫。
+insert into public.cards (user_id, node_id, kind, card, due)
+select c.user_id, c.id, 'map',
+  jsonb_build_object(
+    'due', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+    'stability', 0, 'difficulty', 0, 'elapsed_days', 0, 'scheduled_days', 0,
+    'reps', 0, 'lapses', 0, 'learning_steps', 0, 'state', 0
+  ),
+  now()
+from public.nodes c
+join public.maps m on m.id = c.map_id and m.kind = 'map'
+where c.parent_id is null and exists (select 1 from public.nodes k where k.parent_id = c.id)
+on conflict (node_id, kind) do nothing;
+
+update public.review_logs l set card_id = mc.id
+from public.cards ic
+join public.nodes n on n.id = ic.node_id
+join public.maps m on m.id = n.map_id and m.kind = 'map'
+join public.nodes c on c.map_id = n.map_id and c.parent_id is null
+join public.cards mc on mc.node_id = c.id and mc.kind = 'map'
+where l.card_id = ic.id and ic.kind <> 'map';
+
+delete from public.cards ic
+using public.nodes n, public.maps m, public.nodes c, public.cards mc
+where n.id = ic.node_id and m.id = n.map_id and m.kind = 'map'
+  and c.map_id = n.map_id and c.parent_id is null
+  and mc.node_id = c.id and mc.kind = 'map'
+  and ic.kind <> 'map';

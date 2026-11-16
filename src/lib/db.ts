@@ -64,8 +64,11 @@ export interface MapNode {
 /** マップの項目の見た目。filled: 枝の色で塗った札 / outline: 枝の色の枠 / line: 文字に下線 */
 export type NodeShape = 'filled' | 'outline' | 'line'
 
-/** explain: 定義を思い出す / children: 枝（子の項目）を思い出す */
-export type CardKind = 'explain' | 'children'
+/**
+ * map: マップ全体を思い出す（マップの中心につける） / explain: 定義を思い出す（受信箱の項目）。
+ * children: 枝（子の項目）を思い出す（以前のもの。もう作らない）
+ */
+export type CardKind = 'map' | 'explain' | 'children'
 
 /** マップの項目の復習カード */
 export interface NodeCard {
