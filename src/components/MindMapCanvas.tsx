@@ -35,6 +35,8 @@ const MIN_SCALE = 0.2
 const MAX_SCALE = 2.5
 // 開いたときと項目を見せるときは、スマホで文字が読める大きさにする
 const READABLE_SCALE = 0.75
+// 背景の点の間隔（マップ上の px）
+const DOT_GAP = 18
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
 
 function memoryColor(memory: number): string {
@@ -64,11 +66,17 @@ export function MindMapCanvas({ root, selectedId, revealId, showMemory, bottomIn
 
   const apply = useCallback((animate = false) => {
     const el = world.current
-    if (!el) return
+    const back = container.current
+    if (!el || !back) return
     const { x, y, scale } = view.current
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    el.style.transition = animate && !reduce ? 'transform 250ms ease' : ''
+    const transition = animate && !reduce ? '250ms ease' : ''
+    el.style.transition = transition && `transform ${transition}`
     el.style.transform = `translate(${x}px, ${y}px) scale(${scale})`
+    // 背景の点もマップと一緒に動かし、拡大縮小する（紙の上のマップを動かしている感じに）
+    back.style.transition = transition && `background-position ${transition}, background-size ${transition}`
+    back.style.backgroundPosition = `${x}px ${y}px`
+    back.style.backgroundSize = `${DOT_GAP * scale}px ${DOT_GAP * scale}px`
   }, [])
 
   /** マップ全体（大きすぎるときは中心のあたり）が画面に入るようにする */
@@ -217,7 +225,7 @@ export function MindMapCanvas({ root, selectedId, revealId, showMemory, bottomIn
     <div
       ref={container}
       className="relative h-full w-full touch-none overflow-hidden select-none"
-      style={{ backgroundImage: 'radial-gradient(rgb(148 163 184 / 0.35) 1px, transparent 1.2px)', backgroundSize: '18px 18px' }}
+      style={{ backgroundImage: 'radial-gradient(rgb(148 163 184 / 0.35) 1px, transparent 1.2px)', backgroundSize: `${DOT_GAP}px ${DOT_GAP}px` }}
       onClick={(e) => {
         if (!(e.target as HTMLElement).closest('button')) onSelect(null)
       }}
